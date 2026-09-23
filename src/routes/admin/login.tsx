@@ -1,6 +1,8 @@
 import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { requestAdminMagicLink } from "@/lib/admin-login.functions";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LOGDROP_VERSION } from "@/lib/version";
 
 export const Route = createFileRoute("/admin/login")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -34,6 +36,9 @@ function LoginPage() {
           <img className="wordmark__icon" src="/favicon.svg" alt="" />
           logdrop
         </Link>
+        <div className="nav__end">
+          <ThemeToggle />
+        </div>
       </nav>
 
       <main className="page">
@@ -70,7 +75,7 @@ function LoginPage() {
       </main>
 
       <footer className="footer">
-        <span>logdrop</span>
+        <span>logdrop v{LOGDROP_VERSION}</span>
       </footer>
     </div>
   );

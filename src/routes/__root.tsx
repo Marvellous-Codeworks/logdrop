@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { THEME_INIT_JS } from "@/lib/html-shell";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -23,6 +24,10 @@ function RootComponent() {
   return (
     <html lang="en">
       <head>
+        {/* Must run before first paint, and before HeadContent's stylesheet
+            is applied, so an explicit stored preference never flashes the
+            wrong theme first. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_JS }} />
         <HeadContent />
       </head>
       <body>

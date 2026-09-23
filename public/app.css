@@ -40,6 +40,47 @@
   --control-height: 2.75rem;
 }
 
+/*
+ * Dark theme. Applies automatically when the visitor's OS is in dark mode
+ * (unless they've explicitly picked "light" via the toggle), or always when
+ * they've explicitly picked "dark". See src/lib/theme-toggle.ts and the
+ * THEME_INIT_JS copy in src/lib/html-shell.ts for how [data-theme] gets set.
+ * Only lightness/chroma move — the anchor hue stays the same as light mode.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-paper:      oklch(16%   0.012 258);
+    --color-paper-2:    oklch(21%   0.014 258);
+    --color-ink:        oklch(94%   0.006 258);
+    --color-ink-2:      oklch(84%   0.01  257);
+    --color-rule:       oklch(30%   0.016 258);
+    --color-rule-2:     oklch(38%   0.018 258);
+    --color-accent:     oklch(68%   0.18  256);
+    --color-accent-ink: oklch(14%   0.02  258);
+    --color-focus:      oklch(68%   0.18  256);
+    --color-graphite:   oklch(26%   0.016 260);
+    --color-graphite-2: oklch(33%   0.018 260);
+    --color-error:      oklch(68%   0.18  25);
+    --color-muted:      oklch(64%   0.012 257);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-paper:      oklch(16%   0.012 258);
+  --color-paper-2:    oklch(21%   0.014 258);
+  --color-ink:        oklch(94%   0.006 258);
+  --color-ink-2:      oklch(84%   0.01  257);
+  --color-rule:       oklch(30%   0.016 258);
+  --color-rule-2:     oklch(38%   0.018 258);
+  --color-accent:     oklch(68%   0.18  256);
+  --color-accent-ink: oklch(14%   0.02  258);
+  --color-focus:      oklch(68%   0.18  256);
+  --color-graphite:   oklch(26%   0.016 260);
+  --color-graphite-2: oklch(33%   0.018 260);
+  --color-error:      oklch(68%   0.18  25);
+  --color-muted:      oklch(64%   0.012 257);
+}
+
 /* ---------- reset + base ---------- */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -58,6 +99,7 @@ body {
   font-size: var(--text-md);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out);
 }
 
 h1, h2, h3 {
@@ -131,6 +173,37 @@ code, .mono {
   white-space: nowrap;
 }
 
+.nav__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-rule-2);
+  background: transparent;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  flex: none;
+  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out);
+}
+.theme-toggle:hover { background: var(--color-paper-2); border-color: var(--color-ink-2); }
+.theme-toggle svg { width: 1.1rem; height: 1.1rem; }
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
+  :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+}
+
 main.page {
   flex: 1;
   width: 100%;
@@ -185,6 +258,7 @@ main.page--wide { max-width: 96rem; }
 
 .footer a { color: var(--color-muted); }
 .footer a:hover { color: var(--color-accent); }
+.footer__links { display: flex; gap: var(--space-md); }
 
 /* ---------- form controls ---------- */
 
@@ -481,6 +555,30 @@ table.pastes tbody tr:hover { background: var(--color-paper-2); }
 table.pastes .col-label, table.pastes .col-slug { white-space: normal; }
 
 .tabular { font-variant-numeric: tabular-nums; }
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.table-toolbar__actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.row-check, #select-all {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+table.pastes th:first-child, table.pastes td:first-child { width: 1px; }
 
 form.inline { display: inline; margin: 0; }
 

@@ -8,6 +8,7 @@ import {
   issueNumberFromUrl,
   formatDateFallback,
   localizeDatesScript,
+  themeToggleWireScript,
 } from "./html-shell";
 
 function escapeHtml(input: string): string {
@@ -87,6 +88,7 @@ export async function handlePasteView(
     });
   </script>
   ${localizeDatesScript()}
+  ${themeToggleWireScript()}
 </body>
 </html>`;
 

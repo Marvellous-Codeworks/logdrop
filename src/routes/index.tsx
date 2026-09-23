@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LOGDROP_VERSION } from "@/lib/version";
 
 export const Route = createFileRoute("/")({
   component: IndexPage,
@@ -110,16 +112,19 @@ function IndexPage() {
           <img className="wordmark__icon" src="/favicon.svg" alt="" />
           logdrop
         </Link>
-        {/*
-          /admin has no React component — it's a raw server handler (see
-          src/routes/admin/index.tsx). A client-side TanStack Router
-          navigation has nothing to render for it and shows "Not Found";
-          reloadDocument forces a real browser navigation so the server
-          handler actually runs.
-        */}
-        <Link className="nav__link" to="/admin" reloadDocument>
-          Admin
-        </Link>
+        <div className="nav__end">
+          {/*
+            /admin has no React component — it's a raw server handler (see
+            src/routes/admin/index.tsx). A client-side TanStack Router
+            navigation has nothing to render for it and shows "Not Found";
+            reloadDocument forces a real browser navigation so the server
+            handler actually runs.
+          */}
+          <Link className="nav__link" to="/admin" reloadDocument>
+            Admin
+          </Link>
+          <ThemeToggle />
+        </div>
       </nav>
 
       <main className="page page--wide">
@@ -251,8 +256,11 @@ function IndexPage() {
       </main>
 
       <footer className="footer">
-        <span>logdrop — a plain-text drop-off, gone in a week</span>
-        <a href="https://github.com/Marvellous-Codeworks/logdrop">Source</a>
+        <span>logdrop v{LOGDROP_VERSION} — a plain-text drop-off, gone in a week</span>
+        <span className="footer__links">
+          <a href="https://github.com/Marvellous-Codeworks/logdrop">Source</a>
+          <a href="https://github.com/Marvellous-Codeworks/logdrop/issues/new">Report an issue</a>
+        </span>
       </footer>
     </div>
   );
