@@ -2,10 +2,6 @@
 
 A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can upload text (or a `.txt` file) with no account; only an allow-listed set of maintainer emails can ever read an upload back, via a magic-link login. Uploads expire automatically after a configurable retention window.
 
-## Design
-
-See `docs/design/2026-09-23-logdrop-design.md` for the full design rationale, and `docs/design/2026-09-23-logdrop-plan.md` for the implementation plan this was built from.
-
 ## Stack
 
 - TanStack Start + TanStack Router, React 19, Vite, Bun
