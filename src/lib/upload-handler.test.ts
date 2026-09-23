@@ -1,13 +1,45 @@
-import { describe, test, expect, mock, afterEach } from "bun:test";
+import { describe, test, expect, mock, afterEach, afterAll } from "bun:test";
 
+// mock.module() patches the shared module namespace object in place rather
+// than swapping the reference (see storage.test.ts for the same caveat with
+// @vercel/blob), so the real exports must be destructured into standalone
+// variables *before* mock.module() runs. Holding onto the namespace object
+// itself and spreading it later would just re-observe the mocked values.
+const realKillSwitch = await import("./kill-switch");
+const { areUploadsDisabled: realAreUploadsDisabled } = realKillSwitch;
 const areUploadsDisabledMock = mock(async () => false);
-mock.module("./kill-switch", () => ({ areUploadsDisabled: areUploadsDisabledMock }));
+mock.module("./kill-switch", () => ({ ...realKillSwitch, areUploadsDisabled: areUploadsDisabledMock }));
 
+const realTurnstile = await import("./turnstile");
+const { verifyTurnstileToken: realVerifyTurnstileToken } = realTurnstile;
 const verifyTurnstileTokenMock = mock(async () => true);
-mock.module("./turnstile", () => ({ verifyTurnstileToken: verifyTurnstileTokenMock }));
+mock.module("./turnstile", () => ({ ...realTurnstile, verifyTurnstileToken: verifyTurnstileTokenMock }));
 
+const realStorage = await import("./storage");
+const {
+  savePaste: realSavePaste,
+  getPasteContent: realGetPasteContent,
+  getPasteMeta: realGetPasteMeta,
+  listPastes: realListPastes,
+  deletePaste: realDeletePaste,
+  deleteExpiredPastes: realDeleteExpiredPastes,
+} = realStorage;
 const savePasteMock = mock(async () => undefined);
-mock.module("./storage", () => ({ savePaste: savePasteMock }));
+mock.module("./storage", () => ({ ...realStorage, savePaste: savePasteMock }));
+
+afterAll(() => {
+  mock.module("./kill-switch", () => ({ ...realKillSwitch, areUploadsDisabled: realAreUploadsDisabled }));
+  mock.module("./turnstile", () => ({ ...realTurnstile, verifyTurnstileToken: realVerifyTurnstileToken }));
+  mock.module("./storage", () => ({
+    ...realStorage,
+    savePaste: realSavePaste,
+    getPasteContent: realGetPasteContent,
+    getPasteMeta: realGetPasteMeta,
+    listPastes: realListPastes,
+    deletePaste: realDeletePaste,
+    deleteExpiredPastes: realDeleteExpiredPastes,
+  }));
+});
 
 const { handleUpload } = await import("./upload-handler");
 
