@@ -2,9 +2,9 @@ import { describe, test, expect } from "bun:test";
 import { generateSlug, isPlainText } from "./paste-validation";
 
 describe("generateSlug", () => {
-  test("returns a url-safe string with no padding or slashes", () => {
+  test("returns a 22-char url-safe string with no padding or slashes", () => {
     const slug = generateSlug();
-    expect(slug.length).toBeGreaterThanOrEqual(10);
+    expect(slug.length).toBe(22); // 16 random bytes, base64url-encoded, no padding
     expect(/^[A-Za-z0-9_-]+$/.test(slug)).toBe(true);
   });
 

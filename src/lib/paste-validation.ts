@@ -1,7 +1,11 @@
 import { randomBytes } from "node:crypto";
 
 export function generateSlug(): string {
-  return randomBytes(9).toString("base64url");
+  // 16 random bytes (128 bits) — same entropy as a UUID v4. The slug isn't the
+  // actual security boundary (reads always require an authenticated session),
+  // but these links routinely end up pasted into public GitHub issues, so a
+  // longer, harder-to-guess value is cheap defense in depth.
+  return randomBytes(16).toString("base64url");
 }
 
 export function isPlainText(buffer: Buffer): boolean {

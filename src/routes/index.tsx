@@ -123,10 +123,10 @@ function IndexPage() {
       </nav>
 
       <main className="page page--wide">
-        <h1>Upload a log</h1>
+        <h1>Drop a log, get a link</h1>
         <p className="lede" style={{ fontSize: "var(--text-md)", maxWidth: "48ch" }}>
-          Paste a log, a config, or a snippet below and get back a link.
-          Every upload disappears on its own after the retention window.
+          Paste a log, a config, or a snippet below. Every upload disappears on its own after
+          the retention window.
         </p>
 
         <form onSubmit={handleSubmit}>
