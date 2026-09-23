@@ -1,0 +1,11 @@
+node_modules
+.output
+.vercel
+dist
+.env
+.env.local
+src/routeTree.gen.ts
+*.log
+
+# Design/planning docs stay local — never pushed to GitHub.
+docs/
