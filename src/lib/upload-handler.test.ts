@@ -143,4 +143,28 @@ describe("handleUpload", () => {
     expect(call.meta.label).toBe("my label");
     expect(call.meta.sizeBytes).toBe(11);
   });
+
+  test("passes through a well-formed GitHub issue URL and drops an invalid one", async () => {
+    setBaseEnv();
+
+    const goodRes = await handleUpload(
+      uploadRequest({
+        turnstileToken: "tok",
+        content: "hello",
+        issueUrl: "https://github.com/gioxx/logdrop/issues/7",
+      }),
+    );
+    expect(goodRes.status).toBe(200);
+    const goodCall = savePasteMock.mock.calls[0][0] as { meta: { issueUrl: string | null } };
+    expect(goodCall.meta.issueUrl).toBe("https://github.com/gioxx/logdrop/issues/7");
+
+    savePasteMock.mockClear();
+
+    const badRes = await handleUpload(
+      uploadRequest({ turnstileToken: "tok", content: "hello", issueUrl: "https://example.com/not-an-issue" }),
+    );
+    expect(badRes.status).toBe(200);
+    const badCall = savePasteMock.mock.calls[0][0] as { meta: { issueUrl: string | null } };
+    expect(badCall.meta.issueUrl).toBeNull();
+  });
 });

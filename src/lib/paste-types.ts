@@ -5,6 +5,7 @@ export interface PasteMeta {
   sizeBytes: number;
   originalFilename: string | null;
   label: string | null;
+  issueUrl: string | null;
   uploaderIp: string | null;
   uploaderCountry: string | null;
   userAgent: string | null;

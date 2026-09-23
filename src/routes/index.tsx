@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({
@@ -9,6 +9,7 @@ function IndexPage() {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [label, setLabel] = useState("");
+  const [issueUrl, setIssueUrl] = useState("");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -52,6 +53,7 @@ function IndexPage() {
     const formData = new FormData();
     formData.set("turnstileToken", turnstileToken);
     if (label.trim()) formData.set("label", label.trim());
+    if (issueUrl.trim()) formData.set("issueUrl", issueUrl.trim());
     if (file) {
       formData.set("file", file);
     } else {
@@ -70,6 +72,7 @@ function IndexPage() {
       setText("");
       setFile(null);
       setLabel("");
+      setIssueUrl("");
     } catch {
       setError("Upload failed");
     } finally {
@@ -81,44 +84,95 @@ function IndexPage() {
   }
 
   return (
-    <main style={{ maxWidth: "40rem", margin: "2rem auto", padding: "0 1rem", fontFamily: "sans-serif" }}>
-      <h1>logdrop</h1>
-      <p>Paste text or upload a .txt file. Only an allow-listed maintainer can read it back.</p>
-      <form onSubmit={handleSubmit}>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={!!file}
-          rows={12}
-          style={{ width: "100%" }}
-          placeholder="Paste text here..."
-        />
-        <p>— or —</p>
-        <input
-          type="file"
-          accept=".txt,text/plain"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-        <p>
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Optional label"
-            style={{ width: "100%" }}
-          />
+    <div className="shell">
+      <nav className="nav">
+        <Link className="wordmark" to="/">
+          logdrop
+        </Link>
+        <Link className="nav__link" to="/admin/login" search={{ error: undefined, next: undefined }}>
+          Admin
+        </Link>
+      </nav>
+
+      <main className="page">
+        <h1>logdrop</h1>
+        <p className="lede">
+          Paste text or upload a .txt file. Only an allow-listed maintainer can read it back.
         </p>
-        <div ref={turnstileRef} />
-        <button type="submit" disabled={submitting || (!text.trim() && !file)}>
-          {submitting ? "Uploading…" : "Upload"}
-        </button>
-      </form>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {resultUrl && (
-        <p>
-          Share this link: <a href={resultUrl}>{resultUrl}</a>
-        </p>
-      )}
-    </main>
+
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="paste-text">Text</label>
+            <textarea
+              id="paste-text"
+              className="textarea"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              disabled={!!file}
+              rows={12}
+              placeholder="Paste text here…"
+            />
+          </div>
+
+          <div className="divider">or</div>
+
+          <div className="field">
+            <label htmlFor="paste-file">File</label>
+            <label className="file-field" htmlFor="paste-file">
+              <span>{file ? file.name : "Choose a .txt file"}</span>
+              <input
+                id="paste-file"
+                type="file"
+                accept=".txt,text/plain"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          </div>
+
+          <div className="field">
+            <label htmlFor="paste-label">Label (optional)</label>
+            <input
+              id="paste-label"
+              className="input"
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="What this is"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="paste-issue-url">GitHub issue link (optional)</label>
+            <input
+              id="paste-issue-url"
+              className="input"
+              type="url"
+              value={issueUrl}
+              onChange={(e) => setIssueUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo/issues/123"
+            />
+            <p className="helper">If this capture is for a bug report, link the issue.</p>
+          </div>
+
+          <div ref={turnstileRef} style={{ marginBottom: "var(--space-md)" }} />
+
+          <button className="btn btn--primary" type="submit" disabled={submitting || (!text.trim() && !file)}>
+            {submitting ? "Uploading…" : "Upload"}
+          </button>
+        </form>
+
+        {error && <p className="error-text">{error}</p>}
+        {resultUrl && (
+          <p style={{ marginTop: "var(--space-md)" }}>
+            Share this link: <a href={resultUrl}>{resultUrl}</a>
+          </p>
+        )}
+      </main>
+
+      <footer className="footer">
+        <span>logdrop — a plain-text drop-off, gone in a week</span>
+        <a href="https://github.com/Marvellous-Codeworks/logdrop">Source</a>
+      </footer>
+    </div>
   );
 }

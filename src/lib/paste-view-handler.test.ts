@@ -108,6 +108,7 @@ describe("handlePasteView", () => {
       expiresAt: "2026-01-08T00:00:00.000Z",
       sizeBytes: 25,
       originalFilename: null,
+      issueUrl: null,
       label: "<b>repro</b> steps",
       uploaderIp: null,
       uploaderCountry: null,
@@ -124,5 +125,28 @@ describe("handlePasteView", () => {
     expect(html).toContain("2026-01-01T00:00:00.000Z");
     expect(html).not.toContain("<b>repro</b> steps");
     expect(html).toContain("&lt;b&gt;repro&lt;/b&gt; steps");
+  });
+
+  test("renders a linked issue chip when issueUrl is present", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: "https://github.com/gioxx/logdrop/issues/7",
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+    }));
+
+    const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('href="https://github.com/gioxx/logdrop/issues/7"');
+    expect(html).toContain("#7");
   });
 });

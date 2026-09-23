@@ -83,6 +83,7 @@ describe("handleAdminDashboard", () => {
         expiresAt: "2026-01-08T00:00:00.000Z",
         sizeBytes: 42,
         originalFilename: null,
+        issueUrl: null,
         label: "<b>note</b>",
         uploaderIp: null,
         uploaderCountry: "IT",
@@ -97,7 +98,7 @@ describe("handleAdminDashboard", () => {
     expect(res.status).toBe(200);
     expect(html).toContain("abc123");
     expect(html).toContain("&lt;b&gt;note&lt;/b&gt;");
-    expect(html).toContain('<form method="POST" action="/api/admin/delete">');
+    expect(html).toContain('action="/api/admin/delete"');
     expect(html).toContain('value="abc123"');
   });
 
@@ -110,6 +111,7 @@ describe("handleAdminDashboard", () => {
         expiresAt: "2026-01-08T00:00:00.000Z",
         sizeBytes: 42,
         originalFilename: null,
+        issueUrl: null,
         label: null,
         uploaderIp: null,
         uploaderCountry: '<img src=x onerror="alert(1)">',
@@ -122,6 +124,42 @@ describe("handleAdminDashboard", () => {
 
     expect(html).not.toContain('<img src=x onerror="alert(1)">');
     expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+  });
+
+  test("renders a linked issue chip when issueUrl is set, and no chip when it's null", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "abc123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 42,
+        originalFilename: null,
+        issueUrl: "https://github.com/gioxx/logdrop/issues/7",
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+      },
+      {
+        slug: "def456",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 10,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('href="https://github.com/gioxx/logdrop/issues/7"');
+    expect(html).toContain("#7");
   });
 
   test("passes the current ADMIN_EMAILS allow-list to the session check", async () => {

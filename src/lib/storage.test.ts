@@ -85,6 +85,7 @@ function baseMeta(overrides: Partial<Parameters<typeof savePaste>[0]["meta"]> = 
     expiresAt: "2026-01-08T00:00:00.000Z",
     sizeBytes: 11,
     originalFilename: null,
+    issueUrl: null,
     label: null,
     uploaderIp: null,
     uploaderCountry: null,

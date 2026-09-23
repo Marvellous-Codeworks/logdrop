@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { requestAdminMagicLink } from "@/lib/admin-login.functions";
 
@@ -28,25 +28,49 @@ function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: "24rem", margin: "4rem auto", padding: "0 1rem", fontFamily: "sans-serif" }}>
-      <h1>logdrop admin</h1>
-      {error === "expired" && <p style={{ color: "red" }}>That link expired. Request a new one below.</p>}
-      {error === "missing" && <p style={{ color: "red" }}>Missing login token.</p>}
-      {sent ? (
-        <p>If that email is registered, a login link is on its way. It expires in 15 minutes.</p>
-      ) : (
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            style={{ width: "100%" }}
-          />
-          <button type="submit">Send login link</button>
-        </form>
-      )}
-    </main>
+    <div className="shell">
+      <nav className="nav">
+        <Link className="wordmark" to="/">
+          logdrop
+        </Link>
+      </nav>
+
+      <main className="page">
+        <div className="card card--centered">
+          <h1 style={{ fontSize: "var(--text-2xl)" }}>Admin sign-in</h1>
+          {error === "expired" && (
+            <p className="error-text">That link expired. Request a new one below.</p>
+          )}
+          {error === "missing" && <p className="error-text">Missing login token.</p>}
+          {sent ? (
+            <p className="lede">
+              If that email is registered, a login link is on its way. It expires in 15 minutes.
+            </p>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <div className="field">
+                <label htmlFor="admin-email">Email</label>
+                <input
+                  id="admin-email"
+                  className="input"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <button className="btn btn--primary" type="submit" style={{ width: "100%" }}>
+                Send login link
+              </button>
+            </form>
+          )}
+        </div>
+      </main>
+
+      <footer className="footer">
+        <span>logdrop</span>
+      </footer>
+    </div>
   );
 }

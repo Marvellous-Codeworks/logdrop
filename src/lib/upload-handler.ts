@@ -1,4 +1,5 @@
 import { generateSlug, isPlainText } from "./paste-validation";
+import { sanitizeIssueUrl } from "./issue-url";
 import { computeExpiresAt } from "./retention";
 import { savePaste } from "./storage";
 import { verifyTurnstileToken } from "./turnstile";
@@ -26,6 +27,7 @@ export async function handleUpload(request: Request): Promise<Response> {
   const fileField = formData.get("file");
   const contentField = formData.get("content");
   const label = formData.get("label");
+  const issueUrl = formData.get("issueUrl");
 
   if (typeof turnstileToken !== "string" || !turnstileToken) {
     return Response.json({ error: "Missing verification token" }, { status: 400 });
@@ -70,6 +72,7 @@ export async function handleUpload(request: Request): Promise<Response> {
       sizeBytes: raw.length,
       originalFilename,
       label: typeof label === "string" && label.trim() ? label.trim().slice(0, 200) : null,
+      issueUrl: sanitizeIssueUrl(issueUrl),
       uploaderIp: clientIp ?? null,
       uploaderCountry: request.headers.get("x-vercel-ip-country"),
       userAgent: request.headers.get("user-agent"),
