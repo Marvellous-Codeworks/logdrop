@@ -50,3 +50,14 @@ describe("clearSessionCookie", () => {
     expect(cleared).toContain("Max-Age=0");
   });
 });
+
+describe("parseCookies resilience", () => {
+  test("handles malformed percent-encoding in unrelated cookies without throwing", () => {
+    const setCookie = buildSessionCookie("a@b.com", SECRET);
+    const cookiePair = setCookie.split(";")[0];
+    // Cookie header with malformed percent-escape in 'theme' cookie
+    // This would throw if decodeURIComponent is unguarded
+    const request = requestWithCookie(`theme=%; ${cookiePair}`);
+    expect(getSessionEmail(request, SECRET)).toBe("a@b.com");
+  });
+});

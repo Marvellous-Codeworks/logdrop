@@ -27,7 +27,12 @@ function parseCookies(header: string): Record<string, string> {
     if (idx === -1) continue;
     const key = part.slice(0, idx).trim();
     const value = part.slice(idx + 1).trim();
-    out[key] = decodeURIComponent(value);
+    try {
+      out[key] = decodeURIComponent(value);
+    } catch (err) {
+      // If decoding fails (malformed percent-escape), use raw value
+      out[key] = value;
+    }
   }
   return out;
 }
