@@ -111,6 +111,9 @@ code, .mono {
 }
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
   font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--text-lg);
@@ -120,6 +123,7 @@ code, .mono {
   white-space: nowrap;
 }
 .wordmark:hover { color: var(--color-accent); }
+.wordmark__icon { width: 1.25em; height: 1.25em; flex: none; }
 
 .nav__link {
   font-size: var(--text-sm);
@@ -257,6 +261,40 @@ label {
 .file-field:hover { background: var(--color-paper-2); border-color: var(--color-ink-2); }
 .file-field input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .file-field:has(input:focus-visible) { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+.file-field--compact {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--space-3xs) var(--space-xs);
+  color: var(--color-accent);
+  border-color: var(--color-rule);
+  white-space: nowrap;
+}
+.file-field--compact:hover { background: oklch(58% 0.20 256 / 0.06); border-color: var(--color-accent); }
+
+.field__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.field__header label { margin-bottom: 0; }
+
+.file-chosen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  min-height: 12rem;
+  border: 1px dashed var(--color-rule-2);
+  border-radius: var(--radius-control);
+  padding: var(--space-lg);
+  background: var(--color-paper-2);
+}
 
 .divider {
   display: flex;

@@ -31,6 +31,7 @@ function LoginPage() {
     <div className="shell">
       <nav className="nav">
         <Link className="wordmark" to="/">
+          <img className="wordmark__icon" src="/favicon.svg" alt="" />
           logdrop
         </Link>
       </nav>

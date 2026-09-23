@@ -12,7 +12,7 @@ export function pageHead(title: string): string {
 
 export function navHtml(showAdminLink: boolean): string {
   return `<nav class="nav">
-    <a class="wordmark" href="/">logdrop</a>
+    <a class="wordmark" href="/"><img class="wordmark__icon" src="/favicon.svg" alt="" />logdrop</a>
     ${showAdminLink ? '<a class="nav__link" href="/admin">Admin</a>' : ""}
   </nav>`;
 }

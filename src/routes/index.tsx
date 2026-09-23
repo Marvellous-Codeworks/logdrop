@@ -22,10 +22,19 @@ function IndexPage() {
     script.async = true;
     document.body.appendChild(script);
     script.onload = () => {
-      const turnstile = (window as unknown as { turnstile?: { render: (el: HTMLElement, opts: { sitekey: string }) => string } }).turnstile;
+      const turnstile = (
+        window as unknown as {
+          turnstile?: {
+            render: (el: HTMLElement, opts: { sitekey: string; theme?: "light" | "dark" | "auto" }) => string;
+          };
+        }
+      ).turnstile;
       if (turnstile && turnstileRef.current) {
         widgetIdRef.current = turnstile.render(turnstileRef.current, {
           sitekey: import.meta.env.VITE_TURNSTILE_SITE_KEY,
+          // logdrop's theme is always light — force the widget to match rather
+          // than following the visitor's OS-level dark-mode preference.
+          theme: "light",
         });
       }
     };
@@ -87,9 +96,17 @@ function IndexPage() {
     <div className="shell">
       <nav className="nav">
         <Link className="wordmark" to="/">
+          <img className="wordmark__icon" src="/favicon.svg" alt="" />
           logdrop
         </Link>
-        <Link className="nav__link" to="/admin">
+        {/*
+          /admin has no React component — it's a raw server handler (see
+          src/routes/admin/index.tsx). A client-side TanStack Router
+          navigation has nothing to render for it and shows "Not Found";
+          reloadDocument forces a real browser navigation so the server
+          handler actually runs.
+        */}
+        <Link className="nav__link" to="/admin" reloadDocument>
           Admin
         </Link>
       </nav>
@@ -107,31 +124,39 @@ function IndexPage() {
           <div className="split">
             <div className="split__content">
               <div className="field">
-                <label htmlFor="paste-text">Text</label>
-                <textarea
-                  id="paste-text"
-                  className="textarea"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  disabled={!!file}
-                  rows={18}
-                  placeholder="Paste text here…"
-                />
-              </div>
+                <div className="field__header">
+                  <label htmlFor="paste-text">Text</label>
+                  <label className="file-field file-field--compact" htmlFor="paste-file">
+                    <span>Upload .txt instead</span>
+                    <input
+                      id="paste-file"
+                      type="file"
+                      accept=".txt,text/plain"
+                      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </div>
+                <p className="helper" style={{ marginTop: 0 }}>
+                  Paste directly below, or upload a .txt file — either works the same way.
+                </p>
 
-              <div className="divider">or</div>
-
-              <div className="field">
-                <label htmlFor="paste-file">File</label>
-                <label className="file-field" htmlFor="paste-file">
-                  <span>{file ? file.name : "Choose a .txt file"}</span>
-                  <input
-                    id="paste-file"
-                    type="file"
-                    accept=".txt,text/plain"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                {file ? (
+                  <div className="file-chosen">
+                    <span className="mono">{file.name}</span>
+                    <button className="btn btn--secondary" type="button" onClick={() => setFile(null)}>
+                      Remove, paste text instead
+                    </button>
+                  </div>
+                ) : (
+                  <textarea
+                    id="paste-text"
+                    className="textarea"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    rows={18}
+                    placeholder="Paste text here…"
                   />
-                </label>
+                )}
               </div>
             </div>
 
