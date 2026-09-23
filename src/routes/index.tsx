@@ -115,9 +115,7 @@ function IndexPage() {
         <h1>logdrop</h1>
         <p className="lede" style={{ fontSize: "var(--text-md)", maxWidth: "48ch" }}>
           A plain-text drop-off: paste a log, a config, or a snippet below and get back a link.
-          Only people on the maintainer allow-list can ever open it — anyone else, including
-          search engines, gets nothing. Every upload disappears on its own after the retention
-          window, or a maintainer can delete it early from the admin dashboard.
+          Every upload disappears on its own after the retention window.
         </p>
 
         <form onSubmit={handleSubmit}>
