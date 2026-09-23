@@ -1,7 +1,17 @@
-import { describe, test, expect, mock, afterEach } from "bun:test";
+import { describe, test, expect, mock, afterEach, afterAll } from "bun:test";
 
+// mock.module() patches the shared module namespace object in place for the
+// rest of this bun test process, so it must be restored in afterAll even
+// though ./mail has only one export today (see upload-handler.test.ts for
+// the same convention with multi-export modules).
+const realMail = await import("./mail");
+const { sendMagicLinkEmail: realSendMagicLinkEmail } = realMail;
 const sendMagicLinkEmailMock = mock(async () => undefined);
 mock.module("./mail", () => ({ sendMagicLinkEmail: sendMagicLinkEmailMock }));
+
+afterAll(() => {
+  mock.module("./mail", () => ({ sendMagicLinkEmail: realSendMagicLinkEmail }));
+});
 
 const { handleAdminLoginRequest } = await import("./admin-login-handler");
 
