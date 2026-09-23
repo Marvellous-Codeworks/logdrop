@@ -5,8 +5,6 @@ export const Route = createFileRoute("/")({
   component: IndexPage,
 });
 
-const EXAMPLE_ORIGIN = "https://your-logdrop.example";
-
 function IndexPage() {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -15,13 +13,10 @@ function IndexPage() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [origin, setOrigin] = useState(EXAMPLE_ORIGIN);
   const turnstileRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
-
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     script.async = true;
@@ -94,15 +89,18 @@ function IndexPage() {
         <Link className="wordmark" to="/">
           logdrop
         </Link>
-        <Link className="nav__link" to="/admin/login" search={{ error: undefined, next: undefined }}>
+        <Link className="nav__link" to="/admin">
           Admin
         </Link>
       </nav>
 
       <main className="page page--wide">
         <h1>logdrop</h1>
-        <p className="lede">
-          Paste text or upload a .txt file. Only an allow-listed maintainer can read it back.
+        <p className="lede" style={{ fontSize: "var(--text-md)", maxWidth: "48ch" }}>
+          A plain-text drop-off: paste a log, a config, or a snippet below and get back a link.
+          Only people on the maintainer allow-list can ever open it — anyone else, including
+          search engines, gets nothing. Every upload disappears on its own after the retention
+          window, or a maintainer can delete it early from the admin dashboard.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -163,41 +161,31 @@ function IndexPage() {
                 <p className="helper">If this capture is for a bug report, link the issue.</p>
               </div>
 
-              <div ref={turnstileRef} style={{ marginBottom: "var(--space-md)" }} />
+              <div className="card" style={{ padding: "var(--space-md)" }}>
+                <div ref={turnstileRef} style={{ marginBottom: "var(--space-md)" }} />
 
-              <button
-                className="btn btn--primary"
-                type="submit"
-                style={{ width: "100%" }}
-                disabled={submitting || (!text.trim() && !file)}
-              >
-                {submitting ? "Uploading…" : "Upload"}
-              </button>
+                <button
+                  className="btn btn--primary"
+                  type="submit"
+                  style={{ width: "100%" }}
+                  disabled={submitting || (!text.trim() && !file)}
+                >
+                  {submitting ? "Uploading…" : "Upload"}
+                </button>
 
-              {error && <p className="error-text">{error}</p>}
-              {resultUrl && (
-                <p style={{ marginTop: "var(--space-md)" }}>
-                  Share this link: <a href={resultUrl}>{resultUrl}</a>
-                </p>
-              )}
-
-              <div className="code-card" style={{ marginTop: "var(--space-xl)" }}>
-                <div className="code-card__bar">
-                  <span className="code-card__label">example.sh</span>
-                </div>
-                <pre className="code-card__body">
-                  <span className="prompt">$ </span>cat panic.log | curl -F content=@- \{"\n"}
-                  {"    "}
-                  {origin}/api/upload{"\n\n"}
-                  <span className="out">{"{"}"url":</span>
-                  <span className="accent">"{origin}/r/x7k2p9"</span>
-                  <span className="out">{"}"}</span>
-                </pre>
+                {!submitting && !text.trim() && !file && (
+                  <p className="helper" style={{ marginBottom: 0 }}>
+                    Paste some text or choose a file above to enable this.
+                  </p>
+                )}
+                {error && <p className="error-text" style={{ marginBottom: 0 }}>{error}</p>}
+                {resultUrl && (
+                  <p style={{ marginTop: "var(--space-md)", marginBottom: 0 }}>
+                    Share this link: <a href={resultUrl}>{resultUrl}</a>
+                  </p>
+                )}
               </div>
-              <p className="helper" style={{ marginTop: "var(--space-sm)" }}>
-                Every upload gets a link like this — readable only after signing in as an
-                allow-listed maintainer.
-              </p>
+
             </div>
           </div>
         </form>
