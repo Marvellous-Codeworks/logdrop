@@ -19,7 +19,7 @@ const {
   deleteExpiredPastes: realDeleteExpiredPastes,
 } = await import("./storage");
 
-const getSessionEmailMock = mock((_req: Request, _secret: string) => null as string | null);
+const getSessionEmailMock = mock((_req: Request, _secret: string, _adminEmails: readonly string[]) => null as string | null);
 mock.module("./session", () => ({
   SESSION_COOKIE_NAME: realSessionCookieName,
   getSessionEmail: getSessionEmailMock,
@@ -99,5 +99,41 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain("&lt;b&gt;note&lt;/b&gt;");
     expect(html).toContain('<form method="POST" action="/api/admin/delete">');
     expect(html).toContain('value="abc123"');
+  });
+
+  test("escapes uploaderCountry when it contains HTML metacharacters", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "abc123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 42,
+        originalFilename: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: '<img src=x onerror="alert(1)">',
+        userAgent: null,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).not.toContain('<img src=x onerror="alert(1)">');
+    expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+  });
+
+  test("passes the current ADMIN_EMAILS allow-list to the session check", async () => {
+    const original = process.env.ADMIN_EMAILS;
+    process.env.ADMIN_EMAILS = " Admin@Example.com , other@example.com";
+    try {
+      getSessionEmailMock.mockImplementation(() => null);
+      await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+      expect(getSessionEmailMock.mock.calls[0][2]).toEqual(["admin@example.com", "other@example.com"]);
+    } finally {
+      if (original === undefined) delete process.env.ADMIN_EMAILS;
+      else process.env.ADMIN_EMAILS = original;
+    }
   });
 });

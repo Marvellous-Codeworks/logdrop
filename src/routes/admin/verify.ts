@@ -8,7 +8,12 @@ export const Route = createFileRoute("/admin/verify")({
         const url = new URL(request.url);
         const secret = process.env.TOKEN_SECRET;
         if (!secret) return new Response("Server misconfigured", { status: 500 });
-        return handleAdminVerify(url.searchParams.get("token"), secret, url.origin);
+        return handleAdminVerify(
+          url.searchParams.get("token"),
+          secret,
+          url.origin,
+          url.searchParams.get("next"),
+        );
       },
     },
   },

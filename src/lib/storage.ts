@@ -1,12 +1,52 @@
-import { put, list, del, head } from "@vercel/blob";
+import { put, list, del } from "@vercel/blob";
 import type { PasteMeta } from "./paste-types";
 
-function contentPath(slug: string): string {
-  return `uploads/${slug}/content`;
+// Vercel Blob (v1.x) only supports `access: "public"`, so every blob is
+// reachable by anyone who knows its URL. To keep uploads readable only
+// through the auth-gated /r/<slug> route, blobs are written with a random
+// suffix so their CDN URL cannot be derived from the slug. Lookups therefore
+// go through `list()` (authenticated with BLOB_READ_WRITE_TOKEN) under the
+// slug's prefix instead of constructing an exact pathname.
+//
+// Vercel Blob inserts the random suffix before the extension (e.g.
+// `meta.json` -> `meta-<rand>.json`), so blobs are classified by the leading
+// name of their last path segment rather than by an exact suffix match.
+
+// Minimum value Vercel Blob accepts (1 minute; the default is one month).
+// Keeps deleted/expired content from lingering in the CDN cache.
+const CACHE_CONTROL_MAX_AGE_SECONDS = 60;
+
+type BlobKind = "content" | "meta";
+
+interface ListedBlob {
+  pathname: string;
+  url: string;
 }
 
-function metaPath(slug: string): string {
-  return `uploads/${slug}/meta.json`;
+function slugPrefix(slug: string): string {
+  return `uploads/${slug}/`;
+}
+
+function blobKind(pathname: string): BlobKind | null {
+  const lastSegment = pathname.slice(pathname.lastIndexOf("/") + 1);
+  const match = /^(content|meta)(?:[-.].*)?$/.exec(lastSegment);
+  return match ? (match[1] as BlobKind) : null;
+}
+
+async function listAll(prefix: string): Promise<ListedBlob[]> {
+  const blobs: ListedBlob[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await list({ prefix, cursor });
+    for (const blob of page.blobs) blobs.push({ pathname: blob.pathname, url: blob.url });
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+  return blobs;
+}
+
+async function findSlugBlob(slug: string, kind: BlobKind): Promise<ListedBlob | null> {
+  const blobs = await listAll(slugPrefix(slug));
+  return blobs.find((blob) => blobKind(blob.pathname) === kind) ?? null;
 }
 
 export async function savePaste(input: {
@@ -15,21 +55,24 @@ export async function savePaste(input: {
   meta: Omit<PasteMeta, "slug">;
 }): Promise<void> {
   const meta: PasteMeta = { slug: input.slug, ...input.meta };
-  await put(contentPath(input.slug), input.content, {
+  await put(`${slugPrefix(input.slug)}content`, input.content, {
     access: "public",
-    addRandomSuffix: false,
+    addRandomSuffix: true,
+    cacheControlMaxAge: CACHE_CONTROL_MAX_AGE_SECONDS,
     contentType: "text/plain; charset=utf-8",
   });
-  await put(metaPath(input.slug), JSON.stringify(meta), {
+  await put(`${slugPrefix(input.slug)}meta.json`, JSON.stringify(meta), {
     access: "public",
-    addRandomSuffix: false,
+    addRandomSuffix: true,
+    cacheControlMaxAge: CACHE_CONTROL_MAX_AGE_SECONDS,
     contentType: "application/json",
   });
 }
 
 export async function getPasteContent(slug: string): Promise<string | null> {
   try {
-    const blob = await head(contentPath(slug));
+    const blob = await findSlugBlob(slug, "content");
+    if (!blob) return null;
     const res = await fetch(blob.url);
     return res.ok ? await res.text() : null;
   } catch {
@@ -39,7 +82,8 @@ export async function getPasteContent(slug: string): Promise<string | null> {
 
 export async function getPasteMeta(slug: string): Promise<PasteMeta | null> {
   try {
-    const blob = await head(metaPath(slug));
+    const blob = await findSlugBlob(slug, "meta");
+    if (!blob) return null;
     const res = await fetch(blob.url);
     return res.ok ? ((await res.json()) as PasteMeta) : null;
   } catch {
@@ -48,22 +92,20 @@ export async function getPasteMeta(slug: string): Promise<PasteMeta | null> {
 }
 
 export async function deletePaste(slug: string): Promise<void> {
-  await del([contentPath(slug), metaPath(slug)]);
+  // Removes every blob under the slug's prefix (content and meta).
+  const blobs = await listAll(slugPrefix(slug));
+  if (blobs.length === 0) return;
+  await del(blobs.map((blob) => blob.url));
 }
 
 export async function listPastes(): Promise<PasteMeta[]> {
   const metas: PasteMeta[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await list({ prefix: "uploads/", cursor });
-    for (const blob of page.blobs) {
-      if (!blob.pathname.endsWith("/meta.json")) continue;
-      const res = await fetch(blob.url);
-      if (!res.ok) continue;
-      metas.push((await res.json()) as PasteMeta);
-    }
-    cursor = page.hasMore ? page.cursor : undefined;
-  } while (cursor);
+  for (const blob of await listAll("uploads/")) {
+    if (blobKind(blob.pathname) !== "meta") continue;
+    const res = await fetch(blob.url);
+    if (!res.ok) continue;
+    metas.push((await res.json()) as PasteMeta);
+  }
   return metas.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 

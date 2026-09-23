@@ -1,3 +1,4 @@
+import { getAdminEmails } from "./admin-allowlist";
 import { getSessionEmail } from "./session";
 import { getPasteContent, getPasteMeta } from "./storage";
 
@@ -15,7 +16,7 @@ export async function handlePasteView(
   secret: string,
 ): Promise<Response> {
   const url = new URL(request.url);
-  const email = getSessionEmail(request, secret);
+  const email = getSessionEmail(request, secret, getAdminEmails());
   if (!email) {
     const next = encodeURIComponent(url.pathname);
     return Response.redirect(new URL(`/admin/login?next=${next}`, url.origin).toString(), 302);

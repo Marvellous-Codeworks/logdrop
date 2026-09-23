@@ -11,22 +11,39 @@ const blobStore = new Map<string, string>();
 const realBlob = await import("@vercel/blob");
 const { put: realPut, head: realHead, del: realDel, list: realList } = realBlob;
 
+const BLOB_HOST = "https://example.blob.vercel-storage.com/";
+
+// Simulates Vercel Blob's `addRandomSuffix: true`: the suffix is inserted
+// before the extension (e.g. `meta.json` -> `meta-<rand>.json`), so the
+// stored pathname can't be reconstructed from the slug alone.
+function withRandomSuffix(pathname: string): string {
+  const rand = Math.random().toString(36).slice(2, 12);
+  const lastSlash = pathname.lastIndexOf("/");
+  const dot = pathname.indexOf(".", lastSlash + 1);
+  return dot === -1 ? `${pathname}-${rand}` : `${pathname.slice(0, dot)}-${rand}${pathname.slice(dot)}`;
+}
+
+const putMock = mock(
+  async (pathname: string, body: string, options: { addRandomSuffix?: boolean }) => {
+    const stored = options?.addRandomSuffix ? withRandomSuffix(pathname) : pathname;
+    blobStore.set(stored, body);
+    return { pathname: stored, url: `${BLOB_HOST}${stored}` };
+  },
+);
+
 mock.module("@vercel/blob", () => ({
-  put: mock(async (pathname: string, body: string) => {
-    blobStore.set(pathname, body);
-    return { url: `https://example.blob.vercel-storage.com/${pathname}` };
-  }),
+  put: putMock,
   head: mock(async (pathname: string) => {
     if (!blobStore.has(pathname)) throw new Error("not found");
-    return { url: `https://example.blob.vercel-storage.com/${pathname}` };
+    return { url: `${BLOB_HOST}${pathname}` };
   }),
-  del: mock(async (pathnames: string[]) => {
-    for (const p of pathnames) blobStore.delete(p);
+  del: mock(async (urlsOrPathnames: string[]) => {
+    for (const p of urlsOrPathnames) blobStore.delete(p.replace(BLOB_HOST, ""));
   }),
   list: mock(async ({ prefix }: { prefix: string }) => ({
     blobs: [...blobStore.keys()]
       .filter((p) => p.startsWith(prefix))
-      .map((p) => ({ pathname: p, url: `https://example.blob.vercel-storage.com/${p}` })),
+      .map((p) => ({ pathname: p, url: `${BLOB_HOST}${p}` })),
     hasMore: false,
     cursor: undefined,
   })),
@@ -38,7 +55,7 @@ mock.module("@vercel/blob", () => ({
 // test files, e.g. mail.test.ts / turnstile.test.ts, that run afterwards).
 const originalFetch = global.fetch;
 global.fetch = mock(async (url: string) => {
-  const pathname = url.replace("https://example.blob.vercel-storage.com/", "");
+  const pathname = url.replace(BLOB_HOST, "");
   const body = blobStore.get(pathname);
   if (body === undefined) return new Response(null, { status: 404 });
   return new Response(body, { status: 200 });
@@ -79,6 +96,30 @@ function baseMeta(overrides: Partial<Parameters<typeof savePaste>[0]["meta"]> = 
 describe("storage", () => {
   beforeEach(() => {
     blobStore.clear();
+    putMock.mockClear();
+  });
+
+  test("savePaste writes both blobs with a random suffix and a short CDN cache", async () => {
+    await savePaste({ slug: "abc123", content: "hello world", meta: baseMeta() });
+
+    expect(putMock).toHaveBeenCalledTimes(2);
+    for (const call of putMock.mock.calls) {
+      const options = call[2] as { addRandomSuffix?: boolean; cacheControlMaxAge?: number };
+      expect(options.addRandomSuffix).toBe(true);
+      expect(options.cacheControlMaxAge).toBe(60);
+    }
+    // The stored pathnames are not the guessable, suffix-free ones.
+    expect(blobStore.has("uploads/abc123/content")).toBe(false);
+    expect(blobStore.has("uploads/abc123/meta.json")).toBe(false);
+    expect([...blobStore.keys()].every((p) => p.startsWith("uploads/abc123/"))).toBe(true);
+  });
+
+  test("lookups are scoped to the exact slug, not a slug sharing its prefix", async () => {
+    await savePaste({ slug: "abc1", content: "other", meta: baseMeta({ sizeBytes: 5 }) });
+    expect(await getPasteContent("abc")).toBeNull();
+    expect(await getPasteMeta("abc")).toBeNull();
+    await deletePaste("abc");
+    expect(await getPasteContent("abc1")).toBe("other");
   });
 
   test("savePaste then getPasteContent/getPasteMeta round-trip", async () => {
@@ -98,6 +139,7 @@ describe("storage", () => {
   test("deletePaste removes both the content and meta blobs", async () => {
     await savePaste({ slug: "todelete", content: "bye", meta: baseMeta({ sizeBytes: 3 }) });
     await deletePaste("todelete");
+    expect([...blobStore.keys()].some((p) => p.startsWith("uploads/todelete/"))).toBe(false);
     expect(await getPasteContent("todelete")).toBeNull();
     expect(await getPasteMeta("todelete")).toBeNull();
   });

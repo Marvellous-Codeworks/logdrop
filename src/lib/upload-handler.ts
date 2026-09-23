@@ -4,7 +4,10 @@ import { savePaste } from "./storage";
 import { verifyTurnstileToken } from "./turnstile";
 import { areUploadsDisabled } from "./kill-switch";
 
-const DEFAULT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+// 4MB: comfortably under Vercel Functions' ~4.5MB request-body limit, above
+// which the platform rejects the request with a non-JSON error before this
+// handler ever runs.
+const DEFAULT_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const DEFAULT_RETENTION_DAYS = 7;
 
 export async function handleUpload(request: Request): Promise<Response> {

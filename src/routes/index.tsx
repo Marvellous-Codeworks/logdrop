@@ -38,7 +38,11 @@ function IndexPage() {
     setError(null);
     setResultUrl(null);
 
-    const turnstile = (window as unknown as { turnstile?: { getResponse: (id: string) => string } }).turnstile;
+    const turnstile = (
+      window as unknown as {
+        turnstile?: { getResponse: (id: string) => string; reset: (id: string) => void };
+      }
+    ).turnstile;
     const turnstileToken = widgetIdRef.current ? turnstile?.getResponse(widgetIdRef.current) : undefined;
     if (!turnstileToken) {
       setError("Please complete the verification widget.");
@@ -70,6 +74,9 @@ function IndexPage() {
       setError("Upload failed");
     } finally {
       setSubmitting(false);
+      // Turnstile tokens are single-use: reset the widget after every attempt
+      // (success or failure) so the next upload gets a fresh token.
+      if (widgetIdRef.current) turnstile?.reset(widgetIdRef.current);
     }
   }
 

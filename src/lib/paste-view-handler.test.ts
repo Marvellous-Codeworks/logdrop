@@ -29,7 +29,7 @@ const {
   deleteExpiredPastes: realDeleteExpiredPastes,
 } = await import("./storage");
 
-const getSessionEmailMock = mock((_req: Request, _secret: string) => null as string | null);
+const getSessionEmailMock = mock((_req: Request, _secret: string, _adminEmails: readonly string[]) => null as string | null);
 mock.module("./session", () => ({
   SESSION_COOKIE_NAME: realSessionCookieName,
   getSessionEmail: getSessionEmailMock,
@@ -108,7 +108,7 @@ describe("handlePasteView", () => {
       expiresAt: "2026-01-08T00:00:00.000Z",
       sizeBytes: 25,
       originalFilename: null,
-      label: "repro steps",
+      label: "<b>repro</b> steps",
       uploaderIp: null,
       uploaderCountry: null,
       userAgent: null,
@@ -122,6 +122,7 @@ describe("handlePasteView", () => {
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toContain("2026-01-01T00:00:00.000Z");
-    expect(html).toContain("repro steps");
+    expect(html).not.toContain("<b>repro</b> steps");
+    expect(html).toContain("&lt;b&gt;repro&lt;/b&gt; steps");
   });
 });

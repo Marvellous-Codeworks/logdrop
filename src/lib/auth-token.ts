@@ -1,11 +1,16 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+// `typ` distinguishes the two token kinds. Both are signed with the same
+// secret, so without it a session token could be replayed at /admin/verify
+// to mint a fresh session (indefinite renewal), and vice versa.
 export interface MagicLinkPayload {
+  typ: "magic";
   email: string;
   exp: number;
 }
 
 export interface SessionPayload {
+  typ: "session";
   email: string;
   exp: number;
 }
@@ -67,17 +72,19 @@ function verifyWithExpiry<T extends { exp: number }>(token: string, secret: stri
 }
 
 export function signMagicLinkToken(email: string, secret: string): string {
-  return signWithExpiry<MagicLinkPayload>({ email }, MAGIC_LINK_TTL_SECONDS, secret);
+  return signWithExpiry<MagicLinkPayload>({ typ: "magic", email }, MAGIC_LINK_TTL_SECONDS, secret);
 }
 
 export function verifyMagicLinkToken(token: string, secret: string): MagicLinkPayload | null {
-  return verifyWithExpiry<MagicLinkPayload>(token, secret);
+  const payload = verifyWithExpiry<MagicLinkPayload>(token, secret);
+  return payload?.typ === "magic" ? payload : null;
 }
 
 export function signSessionToken(email: string, secret: string): string {
-  return signWithExpiry<SessionPayload>({ email }, SESSION_TTL_SECONDS, secret);
+  return signWithExpiry<SessionPayload>({ typ: "session", email }, SESSION_TTL_SECONDS, secret);
 }
 
 export function verifySessionToken(token: string, secret: string): SessionPayload | null {
-  return verifyWithExpiry<SessionPayload>(token, secret);
+  const payload = verifyWithExpiry<SessionPayload>(token, secret);
+  return payload?.typ === "session" ? payload : null;
 }

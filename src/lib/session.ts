@@ -1,14 +1,24 @@
 import { signSessionToken, verifySessionToken } from "./auth-token";
+import { isAdminEmail } from "./admin-allowlist";
 
 export const SESSION_COOKIE_NAME = "logdrop_session";
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
-export function getSessionEmail(request: Request, secret: string): string | null {
+// `adminEmails` is re-checked on every request, so removing an address from
+// ADMIN_EMAILS revokes that admin's existing session immediately instead of
+// only once it expires.
+export function getSessionEmail(
+  request: Request,
+  secret: string,
+  adminEmails: readonly string[],
+): string | null {
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) return null;
   const token = parseCookies(cookieHeader)[SESSION_COOKIE_NAME];
   if (!token) return null;
-  return verifySessionToken(token, secret)?.email ?? null;
+  const email = verifySessionToken(token, secret)?.email;
+  if (!email || !isAdminEmail(email, adminEmails)) return null;
+  return email;
 }
 
 export function buildSessionCookie(email: string, secret: string): string {

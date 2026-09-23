@@ -1,4 +1,5 @@
 import { describe, test, expect } from "bun:test";
+import { createHmac } from "node:crypto";
 import {
   signMagicLinkToken,
   verifyMagicLinkToken,
@@ -68,11 +69,25 @@ describe("session tokens", () => {
   });
 
   test("a magic-link token is not accepted as a session token", () => {
-    // Both are structurally identical HMAC tokens; this pins that the two
-    // helpers are distinguished only by TTL, which is fine — the caller
-    // (admin-verify-handler, Task 13) is what actually enforces which
-    // token type is expected at which endpoint.
     const token = signMagicLinkToken("a@b.com", SECRET);
+    expect(verifyMagicLinkToken(token, SECRET)?.email).toBe("a@b.com");
+    expect(verifySessionToken(token, SECRET)).toBeNull();
+  });
+
+  test("a session token is not accepted as a magic-link token", () => {
+    // Correct signature and unexpired exp, but wrong typ: must be rejected,
+    // otherwise a session cookie could be replayed at /admin/verify to mint
+    // a fresh 7-day session indefinitely.
+    const token = signSessionToken("a@b.com", SECRET);
     expect(verifySessionToken(token, SECRET)?.email).toBe("a@b.com");
+    expect(verifyMagicLinkToken(token, SECRET)).toBeNull();
+  });
+
+  test("a validly signed token with no typ is rejected by both verifiers", () => {
+    const json = JSON.stringify({ email: "a@b.com", exp: Math.floor(Date.now() / 1000) + 600 });
+    const sig = createHmac("sha256", SECRET).update(json).digest();
+    const token = `${Buffer.from(json).toString("base64url")}.${sig.toString("base64url")}`;
+    expect(verifyMagicLinkToken(token, SECRET)).toBeNull();
+    expect(verifySessionToken(token, SECRET)).toBeNull();
   });
 });

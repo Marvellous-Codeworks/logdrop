@@ -1,3 +1,4 @@
+import { getAdminEmails } from "./admin-allowlist";
 import { getSessionEmail } from "./session";
 import { listPastes } from "./storage";
 
@@ -11,7 +12,7 @@ function escapeHtml(input: string): string {
 
 export async function handleAdminDashboard(request: Request, secret: string): Promise<Response> {
   const url = new URL(request.url);
-  const email = getSessionEmail(request, secret);
+  const email = getSessionEmail(request, secret, getAdminEmails());
   if (!email) {
     return Response.redirect(new URL("/admin/login?next=/admin", url.origin).toString(), 302);
   }

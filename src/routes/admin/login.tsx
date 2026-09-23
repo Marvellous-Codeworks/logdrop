@@ -11,13 +11,19 @@ export const Route = createFileRoute("/admin/login")({
 });
 
 function LoginPage() {
-  const { error } = useSearch({ from: "/admin/login" });
+  const { error, next } = useSearch({ from: "/admin/login" });
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await requestAdminMagicLink({ data: { email } });
+    try {
+      await requestAdminMagicLink({ data: { email, next } });
+    } catch {
+      // Swallowed on purpose: the user always sees the same generic message,
+      // whether the email was allow-listed, rejected, or delivery failed, so
+      // the outcome can't be used to enumerate admin addresses.
+    }
     setSent(true);
   }
 

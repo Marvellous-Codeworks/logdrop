@@ -18,7 +18,7 @@ const {
   deleteExpiredPastes: realDeleteExpiredPastes,
 } = await import("./storage");
 
-const getSessionEmailMock = mock((_req: Request, _secret: string) => null as string | null);
+const getSessionEmailMock = mock((_req: Request, _secret: string, _adminEmails: readonly string[]) => null as string | null);
 mock.module("./session", () => ({
   SESSION_COOKIE_NAME: realSessionCookieName,
   getSessionEmail: getSessionEmailMock,
