@@ -5,6 +5,8 @@ export const Route = createFileRoute("/")({
   component: IndexPage,
 });
 
+const EXAMPLE_ORIGIN = "https://your-logdrop.example";
+
 function IndexPage() {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -13,10 +15,13 @@ function IndexPage() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [origin, setOrigin] = useState(EXAMPLE_ORIGIN);
   const turnstileRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    setOrigin(window.location.origin);
+
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     script.async = true;
@@ -95,101 +100,107 @@ function IndexPage() {
       </nav>
 
       <main className="page page--wide">
-        <div className="split">
-          <div className="split__form">
-            <h1>logdrop</h1>
-            <p className="lede">
-              Paste text or upload a .txt file. Only an allow-listed maintainer can read it back.
-            </p>
+        <h1>logdrop</h1>
+        <p className="lede">
+          Paste text or upload a .txt file. Only an allow-listed maintainer can read it back.
+        </p>
 
-            <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="paste-text">Text</label>
-            <textarea
-              id="paste-text"
-              className="textarea"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              disabled={!!file}
-              rows={12}
-              placeholder="Paste text here…"
-            />
-          </div>
-
-          <div className="divider">or</div>
-
-          <div className="field">
-            <label htmlFor="paste-file">File</label>
-            <label className="file-field" htmlFor="paste-file">
-              <span>{file ? file.name : "Choose a .txt file"}</span>
-              <input
-                id="paste-file"
-                type="file"
-                accept=".txt,text/plain"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-          </div>
-
-          <div className="field">
-            <label htmlFor="paste-label">Label (optional)</label>
-            <input
-              id="paste-label"
-              className="input"
-              type="text"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="What this is"
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="paste-issue-url">GitHub issue link (optional)</label>
-            <input
-              id="paste-issue-url"
-              className="input"
-              type="url"
-              value={issueUrl}
-              onChange={(e) => setIssueUrl(e.target.value)}
-              placeholder="https://github.com/owner/repo/issues/123"
-            />
-            <p className="helper">If this capture is for a bug report, link the issue.</p>
-          </div>
-
-          <div ref={turnstileRef} style={{ marginBottom: "var(--space-md)" }} />
-
-          <button className="btn btn--primary" type="submit" disabled={submitting || (!text.trim() && !file)}>
-            {submitting ? "Uploading…" : "Upload"}
-          </button>
-            </form>
-
-            {error && <p className="error-text">{error}</p>}
-            {resultUrl && (
-              <p style={{ marginTop: "var(--space-md)" }}>
-                Share this link: <a href={resultUrl}>{resultUrl}</a>
-              </p>
-            )}
-          </div>
-
-          <div className="split__demo">
-            <div className="code-card">
-              <div className="code-card__bar">
-                <span className="code-card__label">example.sh</span>
+        <form onSubmit={handleSubmit}>
+          <div className="split">
+            <div className="split__content">
+              <div className="field">
+                <label htmlFor="paste-text">Text</label>
+                <textarea
+                  id="paste-text"
+                  className="textarea"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  disabled={!!file}
+                  rows={18}
+                  placeholder="Paste text here…"
+                />
               </div>
-              <pre className="code-card__body">
-                <span className="prompt">$ </span>cat panic.log | curl -F content=@- \{"\n"}
-                {"    "}https://logdrop.example/api/upload{"\n\n"}
-                <span className="out">{"{"}"url":</span>
-                <span className="accent">"https://logdrop.example/r/x7k2p9"</span>
-                <span className="out">{"}"}</span>
-              </pre>
+
+              <div className="divider">or</div>
+
+              <div className="field">
+                <label htmlFor="paste-file">File</label>
+                <label className="file-field" htmlFor="paste-file">
+                  <span>{file ? file.name : "Choose a .txt file"}</span>
+                  <input
+                    id="paste-file"
+                    type="file"
+                    accept=".txt,text/plain"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
             </div>
-            <p className="helper" style={{ marginTop: "var(--space-sm)" }}>
-              Every upload gets a link like this — readable only after signing in as an
-              allow-listed maintainer.
-            </p>
+
+            <div className="split__side">
+              <div className="field">
+                <label htmlFor="paste-label">Label (optional)</label>
+                <input
+                  id="paste-label"
+                  className="input"
+                  type="text"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="What this is"
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="paste-issue-url">GitHub issue link (optional)</label>
+                <input
+                  id="paste-issue-url"
+                  className="input"
+                  type="url"
+                  value={issueUrl}
+                  onChange={(e) => setIssueUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repo/issues/123"
+                />
+                <p className="helper">If this capture is for a bug report, link the issue.</p>
+              </div>
+
+              <div ref={turnstileRef} style={{ marginBottom: "var(--space-md)" }} />
+
+              <button
+                className="btn btn--primary"
+                type="submit"
+                style={{ width: "100%" }}
+                disabled={submitting || (!text.trim() && !file)}
+              >
+                {submitting ? "Uploading…" : "Upload"}
+              </button>
+
+              {error && <p className="error-text">{error}</p>}
+              {resultUrl && (
+                <p style={{ marginTop: "var(--space-md)" }}>
+                  Share this link: <a href={resultUrl}>{resultUrl}</a>
+                </p>
+              )}
+
+              <div className="code-card" style={{ marginTop: "var(--space-xl)" }}>
+                <div className="code-card__bar">
+                  <span className="code-card__label">example.sh</span>
+                </div>
+                <pre className="code-card__body">
+                  <span className="prompt">$ </span>cat panic.log | curl -F content=@- \{"\n"}
+                  {"    "}
+                  {origin}/api/upload{"\n\n"}
+                  <span className="out">{"{"}"url":</span>
+                  <span className="accent">"{origin}/r/x7k2p9"</span>
+                  <span className="out">{"}"}</span>
+                </pre>
+              </div>
+              <p className="helper" style={{ marginTop: "var(--space-sm)" }}>
+                Every upload gets a link like this — readable only after signing in as an
+                allow-listed maintainer.
+              </p>
+            </div>
           </div>
-        </div>
+        </form>
       </main>
 
       <footer className="footer">

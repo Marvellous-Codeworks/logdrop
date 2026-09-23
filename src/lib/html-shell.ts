@@ -29,3 +29,25 @@ export function issueNumberFromUrl(issueUrl: string): string {
   const match = issueUrl.match(/\/issues\/(\d+)$/);
   return match ? `#${match[1]}` : issueUrl;
 }
+
+/** "2026-01-01T00:00:00.000Z" -> "2026-01-01 00:00 UTC" — a no-JS fallback, replaced client-side by localizeDatesScript(). */
+export function formatDateFallback(iso: string): string {
+  const match = iso.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+  return match ? `${match[1]} ${match[2]} UTC` : iso;
+}
+
+/**
+ * Rewrites every `<time data-iso="...">` element's text to the visitor's own
+ * locale and timezone, client-side. The server-rendered text stays as a
+ * UTC fallback for no-JS/pre-hydration cases.
+ */
+export function localizeDatesScript(): string {
+  return `<script>
+    document.querySelectorAll("[data-iso]").forEach(function (el) {
+      var d = new Date(el.getAttribute("data-iso"));
+      if (!isNaN(d.getTime())) {
+        el.textContent = d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+      }
+    });
+  </script>`;
+}

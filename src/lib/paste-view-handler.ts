@@ -1,7 +1,14 @@
 import { getAdminEmails } from "./admin-allowlist";
 import { getSessionEmail } from "./session";
 import { getPasteContent, getPasteMeta } from "./storage";
-import { pageHead, navHtml, footerHtml, issueNumberFromUrl } from "./html-shell";
+import {
+  pageHead,
+  navHtml,
+  footerHtml,
+  issueNumberFromUrl,
+  formatDateFallback,
+  localizeDatesScript,
+} from "./html-shell";
 
 function escapeHtml(input: string): string {
   return input
@@ -36,7 +43,8 @@ export async function handlePasteView(
     ${navHtml(true)}
     <main class="page page--wide">
       <p class="lede">
-        Uploaded ${escapeHtml(meta.createdAt)} · expires ${escapeHtml(meta.expiresAt)}
+        Uploaded <time data-iso="${escapeHtml(meta.createdAt)}">${escapeHtml(formatDateFallback(meta.createdAt))}</time>
+        · expires <time data-iso="${escapeHtml(meta.expiresAt)}">${escapeHtml(formatDateFallback(meta.expiresAt))}</time>
         ${meta.label ? ` · ${escapeHtml(meta.label)}` : ""}
         ${
           meta.issueUrl
@@ -78,6 +86,7 @@ export async function handlePasteView(
       setTimeout(() => { delete btn.dataset.state; }, 2500);
     });
   </script>
+  ${localizeDatesScript()}
 </body>
 </html>`;
 
