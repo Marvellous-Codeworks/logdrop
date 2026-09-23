@@ -1,6 +1,15 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
 
 const blobStore = new Map<string, string>();
+
+// Capture the real @vercel/blob exports BEFORE mocking. mock.module() patches
+// the shared module namespace object in place rather than swapping the
+// reference, so a reference captured *after* mocking (e.g. `realBlob.put`
+// read post-mock) would already observe the mocked functions. Capturing the
+// function values now, ahead of the mock.module() call below, lets us hand
+// them back verbatim in the afterAll() restore.
+const realBlob = await import("@vercel/blob");
+const { put: realPut, head: realHead, del: realDel, list: realList } = realBlob;
 
 mock.module("@vercel/blob", () => ({
   put: mock(async (pathname: string, body: string) => {
@@ -23,6 +32,10 @@ mock.module("@vercel/blob", () => ({
   })),
 }));
 
+// Capture the real global.fetch BEFORE overwriting it below, so it can be
+// restored once this file's suite finishes (bun test runs all matched files
+// in one process, so a leaked fetch mock would otherwise bleed into other
+// test files, e.g. mail.test.ts / turnstile.test.ts, that run afterwards).
 const originalFetch = global.fetch;
 global.fetch = mock(async (url: string) => {
   const pathname = url.replace("https://example.blob.vercel-storage.com/", "");
@@ -30,6 +43,21 @@ global.fetch = mock(async (url: string) => {
   if (body === undefined) return new Response(null, { status: 404 });
   return new Response(body, { status: 200 });
 }) as unknown as typeof fetch;
+
+afterAll(() => {
+  global.fetch = originalFetch;
+  // Restore the @vercel/blob module mock using the real exports captured
+  // above. Bun (as of 1.3.14) has no mock.module.restore()/un-mock API; the
+  // documented way to revert a mocked module is to call mock.module() again
+  // with the original implementation.
+  mock.module("@vercel/blob", () => ({
+    ...realBlob,
+    put: realPut,
+    head: realHead,
+    del: realDel,
+    list: realList,
+  }));
+});
 
 const { savePaste, getPasteContent, getPasteMeta, listPastes, deletePaste, deleteExpiredPastes } =
   await import("./storage");
