@@ -13,8 +13,19 @@ function IndexPage() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const turnstileRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const resultDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (resultUrl) {
+      setCopied(false);
+      resultDialogRef.current?.showModal();
+    } else {
+      resultDialogRef.current?.close();
+    }
+  }, [resultUrl]);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -112,9 +123,9 @@ function IndexPage() {
       </nav>
 
       <main className="page page--wide">
-        <h1>logdrop</h1>
+        <h1>Upload a log</h1>
         <p className="lede" style={{ fontSize: "var(--text-md)", maxWidth: "48ch" }}>
-          A plain-text drop-off: paste a log, a config, or a snippet below and get back a link.
+          Paste a log, a config, or a snippet below and get back a link.
           Every upload disappears on its own after the retention window.
         </p>
 
@@ -202,16 +213,41 @@ function IndexPage() {
                   </p>
                 )}
                 {error && <p className="error-text" style={{ marginBottom: 0 }}>{error}</p>}
-                {resultUrl && (
-                  <p style={{ marginTop: "var(--space-md)", marginBottom: 0 }}>
-                    Share this link: <a href={resultUrl}>{resultUrl}</a>
-                  </p>
-                )}
               </div>
 
             </div>
           </div>
         </form>
+
+        <dialog ref={resultDialogRef} className="result-dialog" onClose={() => setResultUrl(null)}>
+          {resultUrl && (
+            <div>
+              <p className="result-dialog__kicker">Uploaded</p>
+              <h2>Your link is ready</h2>
+              <p className="lede">
+                Share it wherever you need to. Only an allow-listed maintainer can open it.
+              </p>
+              <div className="result-dialog__url">
+                <span className="mono">{resultUrl}</span>
+              </div>
+              <div className="result-dialog__actions">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(resultUrl);
+                    setCopied(true);
+                  }}
+                >
+                  {copied ? "Copied" : "Copy link"}
+                </button>
+                <button type="button" className="btn btn--secondary" onClick={() => setResultUrl(null)}>
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+        </dialog>
       </main>
 
       <footer className="footer">
