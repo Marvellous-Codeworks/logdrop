@@ -11,6 +11,12 @@ function escapeHtml(input: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** "2026-01-01T00:00:00.000Z" -> "2026-01-01 00:00 UTC" — same information, narrower column. */
+function formatDate(iso: string): string {
+  const match = iso.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+  return match ? `${match[1]} ${match[2]} UTC` : iso;
+}
+
 export async function handleAdminDashboard(request: Request, secret: string): Promise<Response> {
   const url = new URL(request.url);
   const email = getSessionEmail(request, secret, getAdminEmails());
@@ -23,8 +29,8 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
     .map(
       (p) => `<tr>
         <td class="col-slug"><a href="/r/${escapeHtml(p.slug)}">${escapeHtml(p.slug)}</a></td>
-        <td>${escapeHtml(p.createdAt)}</td>
-        <td>${escapeHtml(p.expiresAt)}</td>
+        <td title="${escapeHtml(p.createdAt)}">${escapeHtml(formatDate(p.createdAt))}</td>
+        <td title="${escapeHtml(p.expiresAt)}">${escapeHtml(formatDate(p.expiresAt))}</td>
         <td class="tabular">${escapeHtml(String(p.sizeBytes))}</td>
         <td>${escapeHtml(p.uploaderCountry ?? "")}</td>
         <td class="col-label">${escapeHtml(p.label ?? "")}</td>

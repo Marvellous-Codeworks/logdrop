@@ -11,6 +11,10 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 - Vercel Edge Config for a runtime upload kill-switch
 - Vercel Cron for daily retention cleanup
 
+## Credits
+
+The favicon (`public/favicon.svg`) uses the "droplet" icon from [Lucide](https://lucide.dev) (ISC license).
+
 ## Local development
 
 ```bash

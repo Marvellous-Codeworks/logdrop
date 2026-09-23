@@ -94,13 +94,15 @@ function IndexPage() {
         </Link>
       </nav>
 
-      <main className="page">
-        <h1>logdrop</h1>
-        <p className="lede">
-          Paste text or upload a .txt file. Only an allow-listed maintainer can read it back.
-        </p>
+      <main className="page page--wide">
+        <div className="split">
+          <div className="split__form">
+            <h1>logdrop</h1>
+            <p className="lede">
+              Paste text or upload a .txt file. Only an allow-listed maintainer can read it back.
+            </p>
 
-        <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="paste-text">Text</label>
             <textarea
@@ -159,14 +161,35 @@ function IndexPage() {
           <button className="btn btn--primary" type="submit" disabled={submitting || (!text.trim() && !file)}>
             {submitting ? "Uploading…" : "Upload"}
           </button>
-        </form>
+            </form>
 
-        {error && <p className="error-text">{error}</p>}
-        {resultUrl && (
-          <p style={{ marginTop: "var(--space-md)" }}>
-            Share this link: <a href={resultUrl}>{resultUrl}</a>
-          </p>
-        )}
+            {error && <p className="error-text">{error}</p>}
+            {resultUrl && (
+              <p style={{ marginTop: "var(--space-md)" }}>
+                Share this link: <a href={resultUrl}>{resultUrl}</a>
+              </p>
+            )}
+          </div>
+
+          <div className="split__demo">
+            <div className="code-card">
+              <div className="code-card__bar">
+                <span className="code-card__label">example.sh</span>
+              </div>
+              <pre className="code-card__body">
+                <span className="prompt">$ </span>cat panic.log | curl -F content=@- \{"\n"}
+                {"    "}https://logdrop.example/api/upload{"\n\n"}
+                <span className="out">{"{"}"url":</span>
+                <span className="accent">"https://logdrop.example/r/x7k2p9"</span>
+                <span className="out">{"}"}</span>
+              </pre>
+            </div>
+            <p className="helper" style={{ marginTop: "var(--space-sm)" }}>
+              Every upload gets a link like this — readable only after signing in as an
+              allow-listed maintainer.
+            </p>
+          </div>
+        </div>
       </main>
 
       <footer className="footer">

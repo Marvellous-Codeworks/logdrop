@@ -135,7 +135,30 @@ main.page {
   padding: clamp(var(--space-lg), 6vw, var(--space-2xl)) clamp(1rem, 4vw, var(--space-xl));
 }
 
-main.page--wide { max-width: 64rem; }
+main.page--wide { max-width: 96rem; }
+
+/* ---------- split layout (upload frontpage) ---------- */
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2xl);
+  align-items: start;
+}
+
+@media (min-width: 60rem) {
+  .split { grid-template-columns: 1.05fr 0.95fr; }
+  .split__demo { position: sticky; top: var(--space-xl); }
+}
+
+.split__demo .code-card__body {
+  max-height: none;
+  font-size: var(--text-sm);
+}
+
+.split__demo .prompt { color: oklch(72% 0.02 258); }
+.split__demo .accent { color: var(--color-accent); }
+.split__demo .out { color: oklch(92% 0.006 258); }
 
 .lede {
   color: var(--color-muted);
