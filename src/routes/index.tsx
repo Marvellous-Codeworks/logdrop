@@ -2,6 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LOGDROP_VERSION } from "@/lib/version";
+import { getEffectiveTheme, THEME_CHANGE_EVENT, type Theme } from "@/lib/theme-toggle";
+
+type TurnstileApi = {
+  render: (el: HTMLElement, opts: { sitekey: string; theme?: Theme }) => string;
+  remove: (id: string) => void;
+  getResponse: (id: string) => string;
+  reset: (id: string) => void;
+};
 
 export const Route = createFileRoute("/")({
   component: IndexPage,
@@ -30,29 +38,40 @@ function IndexPage() {
   }, [resultUrl]);
 
   useEffect(() => {
+    function getTurnstile(): TurnstileApi | undefined {
+      return (window as unknown as { turnstile?: TurnstileApi }).turnstile;
+    }
+
+    function renderWidget() {
+      const turnstile = getTurnstile();
+      if (!turnstile || !turnstileRef.current) return;
+      widgetIdRef.current = turnstile.render(turnstileRef.current, {
+        sitekey: import.meta.env.VITE_TURNSTILE_SITE_KEY,
+        // Match whatever theme is actually in effect right now — the widget
+        // has no "auto" mode that reacts to logdrop's own toggle, so it's
+        // re-rendered from scratch on THEME_CHANGE_EVENT below instead.
+        theme: getEffectiveTheme(),
+      });
+    }
+
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     script.async = true;
     document.body.appendChild(script);
-    script.onload = () => {
-      const turnstile = (
-        window as unknown as {
-          turnstile?: {
-            render: (el: HTMLElement, opts: { sitekey: string; theme?: "light" | "dark" | "auto" }) => string;
-          };
-        }
-      ).turnstile;
-      if (turnstile && turnstileRef.current) {
-        widgetIdRef.current = turnstile.render(turnstileRef.current, {
-          sitekey: import.meta.env.VITE_TURNSTILE_SITE_KEY,
-          // logdrop's theme is always light — force the widget to match rather
-          // than following the visitor's OS-level dark-mode preference.
-          theme: "light",
-        });
-      }
-    };
+    script.onload = renderWidget;
+
+    function handleThemeChange() {
+      const turnstile = getTurnstile();
+      if (!turnstile || !widgetIdRef.current) return;
+      turnstile.remove(widgetIdRef.current);
+      widgetIdRef.current = null;
+      renderWidget();
+    }
+    window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+
     return () => {
       document.body.removeChild(script);
+      window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
     };
   }, []);
 
@@ -61,11 +80,7 @@ function IndexPage() {
     setError(null);
     setResultUrl(null);
 
-    const turnstile = (
-      window as unknown as {
-        turnstile?: { getResponse: (id: string) => string; reset: (id: string) => void };
-      }
-    ).turnstile;
+    const turnstile = (window as unknown as { turnstile?: TurnstileApi }).turnstile;
     const turnstileToken = widgetIdRef.current ? turnstile?.getResponse(widgetIdRef.current) : undefined;
     if (!turnstileToken) {
       setError("Please complete the verification widget.");
