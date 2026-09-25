@@ -106,6 +106,8 @@ function adminBulkActionsScript(): string {
                 wrapper.innerHTML = '<svg class="analyzed-badge" role="img" aria-label="Analyzed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>';
                 slugCell.insertBefore(wrapper.firstChild, slugCell.firstChild);
               }
+              c.checked = false;
+              updateToolbar();
             });
           });
         });
@@ -113,11 +115,11 @@ function adminBulkActionsScript(): string {
 
       if (copyBtn) {
         copyBtn.addEventListener("click", async function () {
-          var links = rowChecks()
-            .filter(function (c) { return c.checked; })
-            .map(function (c) { return window.location.origin + "/r/" + c.value; });
-          if (links.length === 0) return;
+          var checked = rowChecks().filter(function (c) { return c.checked; });
+          if (checked.length === 0) return;
+          var links = checked.map(function (c) { return window.location.origin + "/r/" + c.value; });
           await navigator.clipboard.writeText(links.join("\\n"));
+          checked.forEach(function (c) { c.checked = false; });
           copyBtn.textContent = "✓ Copied";
           copyBtn.classList.add("flash-success");
           setTimeout(function () {
