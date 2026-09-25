@@ -78,7 +78,7 @@ export async function handlePasteView(
     <h2 id="confirm-message">Are you sure?</h2>
     <div class="result-dialog__actions">
       <button type="button" class="btn btn--secondary" id="confirm-cancel">Cancel</button>
-      <button type="button" class="btn btn--danger" id="confirm-ok">Confirm</button>
+      <button type="button" class="btn" id="confirm-ok">Confirm</button>
     </div>
   </dialog>
   <script>
@@ -110,9 +110,12 @@ export async function handlePasteView(
     const confirmOkBtn = document.getElementById("confirm-ok");
     let pendingAction = null;
 
-    function openConfirm(message, onConfirm) {
+    function openConfirm(message, onConfirm, options) {
       confirmMessage.textContent = message;
       pendingAction = onConfirm;
+      confirmOkBtn.textContent = (options && options.okLabel) || "Confirm";
+      confirmOkBtn.classList.toggle("btn--danger", !!(options && options.danger));
+      confirmOkBtn.classList.toggle("btn--secondary", !(options && options.danger));
       confirmDialog.showModal();
     }
 
@@ -137,25 +140,45 @@ export async function handlePasteView(
       openConfirm(
         next ? "Mark this upload as analyzed?" : "Unmark this upload as analyzed?",
         async () => {
-          const res = await fetch("/api/admin/analyzed", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ slug: "${slug}", analyzed: next }),
-          });
-          if (res.ok) {
-            analyzedBtn.dataset.analyzed = next ? "1" : "0";
-            analyzedBtn.textContent = next ? "Unmark as analyzed" : "Mark as analyzed";
+          try {
+            const res = await fetch("/api/admin/analyzed", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ slug: "${slug}", analyzed: next }),
+            });
+            if (res.status === 401) {
+              const nextParam = encodeURIComponent(window.location.pathname);
+              window.location.href = "/admin/login?next=" + nextParam;
+              return;
+            }
+            if (res.ok) {
+              analyzedBtn.dataset.analyzed = next ? "1" : "0";
+              analyzedBtn.textContent = next ? "Unmark as analyzed" : "Mark as analyzed";
+              return;
+            }
+            throw new Error("analyzed toggle failed");
+          } catch (e) {
+            const originalText = analyzedBtn.textContent;
+            analyzedBtn.textContent = "Error — try again";
+            setTimeout(() => {
+              analyzedBtn.textContent = originalText;
+            }, 2000);
           }
         },
+        { okLabel: next ? "Mark" : "Unmark" },
       );
     });
 
     const deleteForm = document.getElementById("delete-form");
     const deleteBtn = document.getElementById("delete-btn");
     deleteBtn.addEventListener("click", () => {
-      openConfirm("Delete \"${slug}\"? This can't be undone.", () => {
-        deleteForm.requestSubmit();
-      });
+      openConfirm(
+        "Delete \"${slug}\"? This can't be undone.",
+        () => {
+          deleteForm.requestSubmit();
+        },
+        { danger: true, okLabel: "Delete" },
+      );
     });
   </script>
   ${localizeDatesScript()}
