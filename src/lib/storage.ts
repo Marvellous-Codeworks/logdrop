@@ -69,6 +69,17 @@ export async function savePaste(input: {
   });
 }
 
+export async function updatePasteMeta(meta: PasteMeta): Promise<void> {
+  const existing = await findSlugBlob(meta.slug, "meta");
+  if (existing) await del([existing.url]);
+  await put(`${slugPrefix(meta.slug)}meta.json`, JSON.stringify(meta), {
+    access: "public",
+    addRandomSuffix: true,
+    cacheControlMaxAge: CACHE_CONTROL_MAX_AGE_SECONDS,
+    contentType: "application/json",
+  });
+}
+
 export async function getPasteContent(slug: string): Promise<string | null> {
   try {
     const blob = await findSlugBlob(slug, "content");

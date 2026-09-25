@@ -76,7 +76,7 @@ afterAll(() => {
   }));
 });
 
-const { savePaste, getPasteContent, getPasteMeta, listPastes, deletePaste, deleteExpiredPastes } =
+const { savePaste, getPasteContent, getPasteMeta, listPastes, deletePaste, deleteExpiredPastes, updatePasteMeta } =
   await import("./storage");
 
 function baseMeta(overrides: Partial<Parameters<typeof savePaste>[0]["meta"]> = {}) {
@@ -179,5 +179,29 @@ describe("storage", () => {
     expect(deleted).toEqual(["expired"]);
     expect(await getPasteContent("expired")).toBeNull();
     expect(await getPasteContent("fresh")).toBe("new");
+  });
+
+  test("updatePasteMeta rewrites only the meta blob, leaving content untouched", async () => {
+    await savePaste({ slug: "toupdate", content: "unchanged", meta: baseMeta({ sizeBytes: 9 }) });
+    putMock.mockClear();
+
+    const meta = await getPasteMeta("toupdate");
+    if (!meta) throw new Error("expected meta to exist");
+    await updatePasteMeta({ ...meta, analyzed: true });
+
+    expect(putMock).toHaveBeenCalledTimes(1);
+    const options = putMock.mock.calls[0][2] as { addRandomSuffix?: boolean; cacheControlMaxAge?: number };
+    expect(options.addRandomSuffix).toBe(true);
+    expect(options.cacheControlMaxAge).toBe(60);
+
+    const updated = await getPasteMeta("toupdate");
+    expect(updated?.analyzed).toBe(true);
+    expect(await getPasteContent("toupdate")).toBe("unchanged");
+
+    // Exactly one meta blob remains under the slug's prefix (the old one was deleted).
+    const metaBlobCount = [...blobStore.keys()].filter(
+      (p) => p.startsWith("uploads/toupdate/") && p.includes("meta"),
+    ).length;
+    expect(metaBlobCount).toBe(1);
   });
 });
