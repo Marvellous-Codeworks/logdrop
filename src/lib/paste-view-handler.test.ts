@@ -296,4 +296,30 @@ describe("handlePasteView", () => {
       expect(() => new Function(source)).not.toThrow();
     }
   });
+
+  test("renders a back-to-admin icon link above the upload/expiry line", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+    }));
+
+    const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('class="icon-btn"');
+    expect(html).toContain('href="/admin"');
+    expect(html).toContain('aria-label="Back to admin"');
+    expect(html.indexOf('aria-label="Back to admin"')).toBeLessThan(html.indexOf("Uploaded"));
+  });
 });

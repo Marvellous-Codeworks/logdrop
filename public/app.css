@@ -198,6 +198,24 @@ code, .mono {
 }
 .theme-toggle:hover { background: var(--color-paper-2); border-color: var(--color-ink-2); }
 .theme-toggle svg { width: 1.1rem; height: 1.1rem; }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-rule-2);
+  background: transparent;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  flex: none;
+  text-decoration: none;
+  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out);
+}
+.icon-btn:hover { background: var(--color-paper-2); border-color: var(--color-ink-2); }
+.icon-btn svg { width: 1.5rem; height: 1.5rem; }
 .theme-toggle .icon-sun { display: none; }
 .theme-toggle .icon-moon { display: block; }
 :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
