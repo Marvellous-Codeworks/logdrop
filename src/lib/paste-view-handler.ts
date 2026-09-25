@@ -65,6 +65,10 @@ export async function handlePasteView(
       <p style="margin-top: var(--space-md);">
         <button class="btn btn--secondary" id="download-btn" type="button">Download as .txt</button>
         <button class="btn btn--secondary" id="analyzed-btn" type="button" data-analyzed="${meta.analyzed ? "1" : "0"}">${meta.analyzed ? "Unmark as analyzed" : "Mark as analyzed"}</button>
+        <form id="delete-form" method="POST" action="/api/admin/delete" style="display: inline;">
+          <input type="hidden" name="slug" value="${escapeHtml(slug)}" />
+          <button class="btn btn--danger" id="delete-btn" type="button">Delete</button>
+        </form>
       </p>
     </main>
     ${footerHtml()}
@@ -144,6 +148,14 @@ export async function handlePasteView(
           }
         },
       );
+    });
+
+    const deleteForm = document.getElementById("delete-form");
+    const deleteBtn = document.getElementById("delete-btn");
+    deleteBtn.addEventListener("click", () => {
+      openConfirm("Delete \"${slug}\"? This can't be undone.", () => {
+        deleteForm.requestSubmit();
+      });
     });
   </script>
   ${localizeDatesScript()}
