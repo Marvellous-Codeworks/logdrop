@@ -11,6 +11,12 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 - Vercel Edge Config for a runtime upload kill-switch
 - Vercel Cron for daily retention cleanup
 
+## Admin features
+
+- Mark an upload as **analyzed** once triaged, and filter the dashboard to hide analyzed rows.
+- A custom confirmation modal on both single-row and bulk delete (no native browser `confirm()`).
+- Optional `GET /api/agent/paste/<slug>` endpoint (see `AGENT_API_TOKEN` below) so your own AI agent tooling can read a paste's content from a plain share link without an admin login.
+
 ## License
 
 [AGPL-3.0](https://github.com/Marvellous-Codeworks/logdrop/blob/main/LICENSE)
