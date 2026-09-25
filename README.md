@@ -13,7 +13,7 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 
 ## License
 
-[MPL-2.0](https://github.com/Marvellous-Codeworks/logdrop/blob/main/LICENSE)
+[AGPL-3.0](https://github.com/Marvellous-Codeworks/logdrop/blob/main/LICENSE)
 
 ## Credits
 
