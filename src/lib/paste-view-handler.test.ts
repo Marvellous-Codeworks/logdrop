@@ -151,4 +151,28 @@ describe("handlePasteView", () => {
     expect(html).toContain('href="https://github.com/gioxx/logdrop/issues/7"');
     expect(html).toContain("#7");
   });
+
+  test("wires the copy button to flash a success state on click", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+    }));
+
+    const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('classList.add("flash-success")');
+    expect(html).toContain('classList.remove("flash-success")');
+  });
 });
