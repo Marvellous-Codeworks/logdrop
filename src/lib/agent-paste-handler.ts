@@ -13,6 +13,9 @@ export async function handleAgentPasteRead(
   if (content === null || meta === null) {
     return new Response("Not found", { status: 404 });
   }
+  if (new Date(meta.expiresAt).getTime() <= Date.now()) {
+    return new Response("Not found", { status: 404 });
+  }
 
   // Redact sensitive fields from meta before returning to agent
   const { uploaderIp, uploaderCountry, userAgent, ...safeMetaFields } = meta;

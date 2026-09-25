@@ -69,7 +69,9 @@ describe("handleAgentPasteRead", () => {
     getPasteMetaMock.mockImplementation(async () => ({
       slug: "abc123",
       createdAt: "2026-01-01T00:00:00.000Z",
-      expiresAt: "2026-01-08T00:00:00.000Z",
+      // Far future so this test doesn't start failing the new expiry check
+      // (finding 3) once real time passes the old fixed date.
+      expiresAt: "2099-01-01T00:00:00.000Z",
       sizeBytes: 22,
       originalFilename: null,
       issueUrl: null,
@@ -96,7 +98,28 @@ describe("handleAgentPasteRead", () => {
     // Verify other fields are still present
     expect(meta.sizeBytes).toBe(22);
     expect(meta.createdAt).toBe("2026-01-01T00:00:00.000Z");
-    expect(meta.expiresAt).toBe("2026-01-08T00:00:00.000Z");
+    expect(meta.expiresAt).toBe("2099-01-01T00:00:00.000Z");
     expect(meta.analyzed).toBe(false);
+  });
+
+  test("returns 404 for a slug that exists but has already expired", async () => {
+    getPasteContentMock.mockImplementation(async () => "log line 1\nlog line 2");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2020-01-01T00:00:00.000Z", // in the past
+      sizeBytes: 22,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: "1.2.3.4",
+      uploaderCountry: "IT",
+      userAgent: "test-agent",
+      analyzed: false,
+    }));
+
+    const res = await handleAgentPasteRead(agentRequest(`Bearer ${SECRET}`), "abc123", SECRET);
+
+    expect(res.status).toBe(404);
   });
 });
