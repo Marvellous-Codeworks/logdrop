@@ -96,9 +96,9 @@ export async function handlePasteView(
       URL.revokeObjectURL(url);
     });
     document.getElementById("copy-btn").addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
       const text = document.getElementById("paste-content").textContent;
       await navigator.clipboard.writeText(text);
-      const btn = e.currentTarget;
       btn.dataset.state = "copied";
       btn.classList.add("flash-success");
       setTimeout(() => {
