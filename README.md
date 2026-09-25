@@ -11,6 +11,10 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 - Vercel Edge Config for a runtime upload kill-switch
 - Vercel Cron for daily retention cleanup
 
+## License
+
+[AGPL-3.0](https://github.com/Marvellous-Codeworks/logdrop/blob/main/LICENSE)
+
 ## Credits
 
 The favicon (`public/favicon.svg`) uses the "droplet" icon from [Lucide](https://lucide.dev) (ISC license).
@@ -78,6 +82,7 @@ In the Vercel project → **Settings** → **Environment Variables**, set everyt
 | `RETENTION_DAYS`, `MAX_UPLOAD_BYTES` | defaults in `.env.example` are fine to start |
 | `VITE_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | step 4 |
 | `CRON_SECRET` | generated in step 5 |
+| `AGENT_API_TOKEN` | optional — generate the same way as step 5, only if you want `/api/agent/paste/<slug>` (see `.env.example` for what it's for) |
 
 `BLOB_READ_WRITE_TOKEN` and `EDGE_CONFIG` should already be present from steps 2–3 — double check they're listed before moving on.
 

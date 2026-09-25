@@ -14,6 +14,7 @@
   --color-graphite:   oklch(22%   0.016 260);
   --color-graphite-2: oklch(28%   0.018 260);
   --color-error:      oklch(58%   0.20  25);
+  --color-success:    oklch(58%   0.18  145);
   --color-muted:      oklch(52%   0.014 257);
 
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -61,6 +62,7 @@
     --color-graphite:   oklch(26%   0.016 260);
     --color-graphite-2: oklch(33%   0.018 260);
     --color-error:      oklch(68%   0.18  25);
+    --color-success:    oklch(68%   0.16  145);
     --color-muted:      oklch(64%   0.012 257);
   }
 }
@@ -78,6 +80,7 @@
   --color-graphite:   oklch(26%   0.016 260);
   --color-graphite-2: oklch(33%   0.018 260);
   --color-error:      oklch(68%   0.18  25);
+  --color-success:    oklch(68%   0.16  145);
   --color-muted:      oklch(64%   0.012 257);
 }
 
@@ -475,6 +478,19 @@ label {
 }
 .code-card__bar .btn:focus-visible { outline-color: var(--color-accent); }
 
+/*
+ * Keep the flash-success green during hover too. `.code-card__bar
+ * .btn:hover:not(:disabled)` above is (0,4,0) (2 classes + :hover +
+ * :disabled inside :not(), which counts as a pseudo-class), which beats
+ * `.btn.flash-success` alone at (0,2,0), so without this rule the green
+ * "Copied" text disappears the instant the user hovers. This rule is
+ * (0,5,0) (3 classes + :hover + :disabled), which wins.
+ */
+.code-card__bar .btn.flash-success,
+.code-card__bar .btn.flash-success:hover:not(:disabled) {
+  color: var(--color-success);
+}
+
 .code-card__label {
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -515,8 +531,14 @@ label {
 /* ---------- copy button ---------- */
 
 .copy-btn[data-state="copied"] .copy-btn__default { display: none; }
-.copy-btn[data-state="copied"]::after { content: "Copied"; }
+.copy-btn[data-state="copied"]::after { content: "\2713 Copied"; }
 .copy-btn:not([data-state="copied"])::after { content: none; }
+
+.btn.flash-success {
+  color: var(--color-success);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-success) 45%, transparent);
+  transition: box-shadow var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out);
+}
 
 /* ---------- table (admin dashboard) ---------- */
 
@@ -569,6 +591,15 @@ table.pastes .col-label, table.pastes .col-slug { white-space: normal; }
   display: flex;
   gap: var(--space-sm);
   flex-wrap: wrap;
+}
+
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
+  cursor: pointer;
 }
 
 .row-check, #select-all {

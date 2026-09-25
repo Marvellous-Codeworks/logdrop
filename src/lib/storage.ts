@@ -21,6 +21,7 @@ type BlobKind = "content" | "meta";
 interface ListedBlob {
   pathname: string;
   url: string;
+  uploadedAt: Date;
 }
 
 function slugPrefix(slug: string): string {
@@ -38,7 +39,9 @@ async function listAll(prefix: string): Promise<ListedBlob[]> {
   let cursor: string | undefined;
   do {
     const page = await list({ prefix, cursor });
-    for (const blob of page.blobs) blobs.push({ pathname: blob.pathname, url: blob.url });
+    for (const blob of page.blobs) {
+      blobs.push({ pathname: blob.pathname, url: blob.url, uploadedAt: blob.uploadedAt });
+    }
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   return blobs;
@@ -46,7 +49,13 @@ async function listAll(prefix: string): Promise<ListedBlob[]> {
 
 async function findSlugBlob(slug: string, kind: BlobKind): Promise<ListedBlob | null> {
   const blobs = await listAll(slugPrefix(slug));
-  return blobs.find((blob) => blobKind(blob.pathname) === kind) ?? null;
+  const matches = blobs.filter((blob) => blobKind(blob.pathname) === kind);
+  if (matches.length === 0) return null;
+  // Duplicates can exist transiently (e.g. mid-cleanup right after a racing
+  // updatePasteMeta write). Prefer the newest so reads see the most recently
+  // written blob instead of whichever one `list()` happens to return first.
+  matches.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+  return matches[0];
 }
 
 export async function savePaste(input: {
@@ -69,6 +78,49 @@ export async function savePaste(input: {
   });
 }
 
+export async function updatePasteMeta(meta: PasteMeta): Promise<void> {
+  // Write the new meta blob FIRST, then clean up any other meta blob(s) for
+  // this slug. This ordering means a failure partway through never leaves
+  // the paste without a readable meta blob: either the write fails (old meta
+  // is still intact) or the write succeeds and cleanup fails (both old and
+  // new meta exist briefly, self-healing on the next write). The previous
+  // delete-then-write order could drop the paste's meta entirely if `put`
+  // failed after `del` succeeded.
+  const written = await put(`${slugPrefix(meta.slug)}meta.json`, JSON.stringify(meta), {
+    access: "public",
+    addRandomSuffix: true,
+    cacheControlMaxAge: CACHE_CONTROL_MAX_AGE_SECONDS,
+    contentType: "application/json",
+  });
+  const blobs = await listAll(slugPrefix(meta.slug));
+  // `put()` doesn't return an upload timestamp, so recover our own write's
+  // server-recorded `uploadedAt` from the list results (falling back to the
+  // current time if it's somehow missing) and delete only meta blobs
+  // strictly OLDER than that. This makes cleanup last-write-wins: if a
+  // second `updatePasteMeta` call races on the same slug and its write
+  // lands later, its blob's `uploadedAt` is newer than ours, so we leave it
+  // alone — and it will delete ours in turn. Without this, two racing
+  // writers could each delete the other's brand-new meta blob (since both
+  // "not my own url" checks are true for the other's blob), leaving the
+  // slug with no meta blob at all — worse than the stale duplicate this
+  // cleanup step exists to avoid.
+  const ownUploadedAt = (blobs.find((blob) => blob.url === written.url)?.uploadedAt ?? new Date()).getTime();
+  const staleMetaUrls = blobs
+    .filter((blob) => {
+      if (blob.url === written.url || blobKind(blob.pathname) !== "meta") return false;
+      const otherUploadedAt = blob.uploadedAt.getTime();
+      if (otherUploadedAt !== ownUploadedAt) return otherUploadedAt < ownUploadedAt;
+      // Equal timestamps are unlikely — Vercel Blob's `uploadedAt` carries
+      // millisecond precision, and both writes still had to make a network
+      // round trip — but not impossible for near-simultaneous writes.
+      // Compare URLs so both racing calls agree on exactly one survivor
+      // instead of each seeing itself as "not older" and keeping both.
+      return blob.url < written.url;
+    })
+    .map((blob) => blob.url);
+  if (staleMetaUrls.length > 0) await del(staleMetaUrls);
+}
+
 export async function getPasteContent(slug: string): Promise<string | null> {
   try {
     const blob = await findSlugBlob(slug, "content");
@@ -85,7 +137,12 @@ export async function getPasteMeta(slug: string): Promise<PasteMeta | null> {
     const blob = await findSlugBlob(slug, "meta");
     if (!blob) return null;
     const res = await fetch(blob.url);
-    return res.ok ? ((await res.json()) as PasteMeta) : null;
+    if (!res.ok) return null;
+    // Normalize `analyzed` for meta blobs written before this field existed;
+    // without this, old pastes come back with `analyzed: undefined` despite
+    // the type claiming `boolean`.
+    const raw = (await res.json()) as PasteMeta;
+    return { ...raw, analyzed: raw.analyzed === true };
   } catch {
     return null;
   }
@@ -104,7 +161,9 @@ export async function listPastes(): Promise<PasteMeta[]> {
     if (blobKind(blob.pathname) !== "meta") continue;
     const res = await fetch(blob.url);
     if (!res.ok) continue;
-    metas.push((await res.json()) as PasteMeta);
+    // Same legacy-field normalization as getPasteMeta above.
+    const raw = (await res.json()) as PasteMeta;
+    metas.push({ ...raw, analyzed: raw.analyzed === true });
   }
   return metas.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }

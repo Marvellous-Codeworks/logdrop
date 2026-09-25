@@ -84,7 +84,11 @@ export async function handlePasteView(
       await navigator.clipboard.writeText(text);
       const btn = e.currentTarget;
       btn.dataset.state = "copied";
-      setTimeout(() => { delete btn.dataset.state; }, 2500);
+      btn.classList.add("flash-success");
+      setTimeout(() => {
+        delete btn.dataset.state;
+        btn.classList.remove("flash-success");
+      }, 1500);
     });
   </script>
   ${localizeDatesScript()}

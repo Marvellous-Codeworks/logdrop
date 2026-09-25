@@ -88,6 +88,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: "IT",
         userAgent: null,
+        analyzed: false,
       },
     ]);
     const request = new Request("https://logdrop.example/admin");
@@ -100,6 +101,8 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain("&lt;b&gt;note&lt;/b&gt;");
     expect(html).toContain('action="/api/admin/delete"');
     expect(html).toContain('value="abc123"');
+    expect(html).toContain('id="delete-confirm-dialog"');
+    expect(html).not.toContain('confirm("Delete');
   });
 
   test("escapes uploaderCountry when it contains HTML metacharacters", async () => {
@@ -116,6 +119,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: '<img src=x onerror="alert(1)">',
         userAgent: null,
+        analyzed: false,
       },
     ]);
 
@@ -140,6 +144,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: null,
         userAgent: null,
+        analyzed: false,
       },
       {
         slug: "def456",
@@ -152,6 +157,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: null,
         userAgent: null,
+        analyzed: false,
       },
     ]);
 
@@ -160,6 +166,78 @@ describe("handleAdminDashboard", () => {
 
     expect(html).toContain('href="https://github.com/gioxx/logdrop/issues/7"');
     expect(html).toContain("#7");
+  });
+
+  test("renders an analyzed checkbox per row reflecting current state, and the filter toggle", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "done123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 5,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+        analyzed: true,
+      },
+      {
+        slug: "todo456",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 5,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+        analyzed: false,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('id="hide-analyzed"');
+    // The analyzed row's checkbox is checked; the unanalyzed row's isn't.
+    // Bounded to `[^>]*` (stops at the tag's closing `>`) rather than an
+    // unbounded `[^]*?`: the page's pre-existing bulk-select script
+    // legitimately contains many `.checked` property references (e.g.
+    // `var checked = rowChecks()...`, `c.checked`, `selectAll.checked`)
+    // after every row in the DOM, so an unbounded scan would always find a
+    // "checked" match downstream regardless of this row's actual state.
+    expect(html).toMatch(/data-slug="done123"[^>]*checked/);
+    expect(html).not.toMatch(/data-slug="todo456"[^>]*checked/);
+    expect(html).toContain("/api/admin/analyzed");
+  });
+
+  test("wires the bulk-copy button to flash a success state on click", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "abc123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 5,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+        analyzed: false,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('classList.add("flash-success")');
+    expect(html).toContain('classList.remove("flash-success")');
   });
 
   test("passes the current ADMIN_EMAILS allow-list to the session check", async () => {
