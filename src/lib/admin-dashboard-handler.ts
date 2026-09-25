@@ -114,14 +114,57 @@ function adminBulkActionsScript(): string {
         });
       }
 
-      if (bulkForm && deleteBtn) {
+      var deleteDialog = document.getElementById("delete-confirm-dialog");
+      var deleteMessage = document.getElementById("delete-confirm-message");
+      var deleteCancelBtn = document.getElementById("delete-confirm-cancel");
+      var deleteOkBtn = document.getElementById("delete-confirm-ok");
+      var pendingSubmitter = null;
+      var confirmedSubmit = false;
+
+      if (bulkForm && deleteDialog) {
         bulkForm.addEventListener("submit", function (e) {
-          if (e.submitter === deleteBtn) {
-            var n = rowChecks().filter(function (c) { return c.checked; }).length;
-            if (n === 0 || !confirm("Delete " + n + " upload(s)? This can't be undone.")) {
-              e.preventDefault();
-            }
+          if (confirmedSubmit) {
+            confirmedSubmit = false;
+            return;
           }
+          var submitter = e.submitter;
+          if (!submitter) return;
+          var isBulk = submitter === deleteBtn;
+          var isRowDelete = !isBulk && submitter.getAttribute("formaction") === "/api/admin/delete";
+          if (!isBulk && !isRowDelete) return;
+
+          if (isBulk) {
+            var n = rowChecks().filter(function (c) { return c.checked; }).length;
+            if (n === 0) {
+              e.preventDefault();
+              return;
+            }
+            deleteMessage.textContent = "Delete " + n + " upload(s)? This can't be undone.";
+          } else {
+            deleteMessage.textContent = "Delete \\"" + submitter.value + "\\"? This can't be undone.";
+          }
+
+          e.preventDefault();
+          pendingSubmitter = submitter;
+          deleteDialog.showModal();
+        });
+
+        deleteCancelBtn.addEventListener("click", function () {
+          pendingSubmitter = null;
+          deleteDialog.close();
+        });
+
+        deleteOkBtn.addEventListener("click", function () {
+          deleteDialog.close();
+          if (pendingSubmitter) {
+            confirmedSubmit = true;
+            bulkForm.requestSubmit(pendingSubmitter);
+            pendingSubmitter = null;
+          }
+        });
+
+        deleteDialog.addEventListener("cancel", function () {
+          pendingSubmitter = null;
         });
       }
 
@@ -195,6 +238,19 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
     </main>
     ${footerHtml()}
   </div>
+  ${
+    pastes.length > 0
+      ? `<dialog id="delete-confirm-dialog" class="result-dialog">
+        <p class="result-dialog__kicker">Confirm delete</p>
+        <h2 id="delete-confirm-message">Delete this upload?</h2>
+        <p class="lede">This can't be undone.</p>
+        <div class="result-dialog__actions">
+          <button type="button" class="btn btn--secondary" id="delete-confirm-cancel">Cancel</button>
+          <button type="button" class="btn btn--danger" id="delete-confirm-ok">Delete</button>
+        </div>
+      </dialog>`
+      : ""
+  }
   ${localizeDatesScript()}
   ${themeToggleWireScript()}
   ${pastes.length > 0 ? adminBulkActionsScript() : ""}

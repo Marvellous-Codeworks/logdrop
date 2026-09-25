@@ -101,6 +101,8 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain("&lt;b&gt;note&lt;/b&gt;");
     expect(html).toContain('action="/api/admin/delete"');
     expect(html).toContain('value="abc123"');
+    expect(html).toContain('id="delete-confirm-dialog"');
+    expect(html).not.toContain('confirm("Delete');
   });
 
   test("escapes uploaderCountry when it contains HTML metacharacters", async () => {
