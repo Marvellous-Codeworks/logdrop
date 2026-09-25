@@ -283,7 +283,7 @@ describe("handlePasteView", () => {
     const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
     const html = await res.text();
 
-    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
     // The page renders several inline <script> blocks (theme-init in <head>,
     // this file's button wiring, date localization, theme-toggle wiring) —
     // check all of them, not just the first match.
