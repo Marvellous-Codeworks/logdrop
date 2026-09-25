@@ -64,10 +64,19 @@ export async function handlePasteView(
       </div>
       <p style="margin-top: var(--space-md);">
         <button class="btn btn--secondary" id="download-btn" type="button">Download as .txt</button>
+        <button class="btn btn--secondary" id="analyzed-btn" type="button" data-analyzed="${meta.analyzed ? "1" : "0"}">${meta.analyzed ? "Unmark as analyzed" : "Mark as analyzed"}</button>
       </p>
     </main>
     ${footerHtml()}
   </div>
+  <dialog id="confirm-dialog" class="result-dialog">
+    <p class="result-dialog__kicker">Confirm</p>
+    <h2 id="confirm-message">Are you sure?</h2>
+    <div class="result-dialog__actions">
+      <button type="button" class="btn btn--secondary" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn btn--danger" id="confirm-ok">Confirm</button>
+    </div>
+  </dialog>
   <script>
     document.getElementById("download-btn").addEventListener("click", () => {
       const text = document.getElementById("paste-content").textContent;
@@ -89,6 +98,52 @@ export async function handlePasteView(
         delete btn.dataset.state;
         btn.classList.remove("flash-success");
       }, 1500);
+    });
+
+    const confirmDialog = document.getElementById("confirm-dialog");
+    const confirmMessage = document.getElementById("confirm-message");
+    const confirmCancelBtn = document.getElementById("confirm-cancel");
+    const confirmOkBtn = document.getElementById("confirm-ok");
+    let pendingAction = null;
+
+    function openConfirm(message, onConfirm) {
+      confirmMessage.textContent = message;
+      pendingAction = onConfirm;
+      confirmDialog.showModal();
+    }
+
+    confirmCancelBtn.addEventListener("click", () => {
+      pendingAction = null;
+      confirmDialog.close();
+    });
+    confirmDialog.addEventListener("cancel", () => {
+      pendingAction = null;
+    });
+    confirmOkBtn.addEventListener("click", () => {
+      confirmDialog.close();
+      const action = pendingAction;
+      pendingAction = null;
+      if (action) action();
+    });
+
+    const analyzedBtn = document.getElementById("analyzed-btn");
+    analyzedBtn.addEventListener("click", () => {
+      const isAnalyzed = analyzedBtn.dataset.analyzed === "1";
+      const next = !isAnalyzed;
+      openConfirm(
+        next ? "Mark this upload as analyzed?" : "Unmark this upload as analyzed?",
+        async () => {
+          const res = await fetch("/api/admin/analyzed", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ slug: "${slug}", analyzed: next }),
+          });
+          if (res.ok) {
+            analyzedBtn.dataset.analyzed = next ? "1" : "0";
+            analyzedBtn.textContent = next ? "Unmark as analyzed" : "Mark as analyzed";
+          }
+        },
+      );
     });
   </script>
   ${localizeDatesScript()}
