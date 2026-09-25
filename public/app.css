@@ -521,7 +521,7 @@ label {
 .copy-btn[data-state="copied"]::after { content: "\2713 Copied"; }
 .copy-btn:not([data-state="copied"])::after { content: none; }
 
-.flash-success {
+.btn.flash-success {
   color: var(--color-success);
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-success) 45%, transparent);
   transition: box-shadow var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out);
