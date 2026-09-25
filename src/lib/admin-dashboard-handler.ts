@@ -80,13 +80,20 @@ function adminBulkActionsScript(): string {
       document.querySelectorAll(".analyzed-check").forEach(function (cb) {
         cb.addEventListener("change", function () {
           var tr = cb.closest("tr");
+          var originalValue = tr ? tr.getAttribute("data-analyzed") : null;
           if (tr) tr.setAttribute("data-analyzed", cb.checked ? "1" : "0");
           fetch("/api/admin/analyzed", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ slug: cb.dataset.slug, analyzed: cb.checked }),
           }).then(function (res) {
-            if (!res.ok) cb.checked = !cb.checked;
+            if (!res.ok) {
+              cb.checked = !cb.checked;
+              if (tr) tr.setAttribute("data-analyzed", originalValue);
+            }
+          }).catch(function () {
+            cb.checked = !cb.checked;
+            if (tr) tr.setAttribute("data-analyzed", originalValue);
           });
         });
       });
