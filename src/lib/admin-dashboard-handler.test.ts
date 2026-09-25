@@ -279,4 +279,33 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain('data-analyzed="1"');
     expect(html).toContain('hidingAnalyzed = !hidingAnalyzed');
   });
+
+  test("renders a bulk Mark as analyzed button wired to the analyzed endpoint", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "abc123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 5,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+        analyzed: false,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('id="bulk-mark-analyzed-btn"');
+    expect(html).toContain(">Mark as analyzed<");
+    expect(html).toContain("/api/admin/analyzed");
+    expect(html).toContain("analyzed: true");
+    // Disabled by default, like the other bulk-action buttons, until a row is checked.
+    expect(html).toMatch(/id="bulk-mark-analyzed-btn"[^>]*disabled/);
+  });
 });
