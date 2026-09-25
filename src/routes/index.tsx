@@ -271,9 +271,10 @@ function IndexPage() {
       </main>
 
       <footer className="footer">
-        <span>logdrop v{LOGDROP_VERSION} — a plain-text drop-off that expires automatically</span>
+        <span><a href="https://marvellouscode.works/logdrop">logdrop v{LOGDROP_VERSION}</a> — a plain-text drop-off that expires automatically</span>
         <span className="footer__links">
           <a href="https://github.com/Marvellous-Codeworks/logdrop">Source</a>
+          <a href="https://github.com/Marvellous-Codeworks/logdrop/blob/main/LICENSE">License</a>
           <a href="https://github.com/Marvellous-Codeworks/logdrop/issues/new">Report an issue</a>
         </span>
       </footer>
