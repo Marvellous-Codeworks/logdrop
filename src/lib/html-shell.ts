@@ -54,6 +54,7 @@ export function footerHtml(): string {
     <span>logdrop v${LOGDROP_VERSION} — a plain-text drop-off, gone in a week</span>
     <span class="footer__links">
       <a href="https://github.com/Marvellous-Codeworks/logdrop">Source</a>
+      <a href="https://github.com/Marvellous-Codeworks/logdrop/blob/main/LICENSE">License</a>
       <a href="https://github.com/Marvellous-Codeworks/logdrop/issues/new">Report an issue</a>
     </span>
   </footer>`;
