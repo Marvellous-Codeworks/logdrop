@@ -91,9 +91,11 @@ function adminBulkActionsScript(): string {
 
       if (markBtn) {
         markBtn.addEventListener("click", function () {
-          rowChecks().filter(function (c) { return c.checked; }).forEach(function (c) {
+          var checked = rowChecks().filter(function (c) { return c.checked; });
+          if (checked.length === 0) return;
+          var requests = checked.map(function (c) {
             var tr = c.closest("tr");
-            fetch("/api/admin/analyzed", {
+            return fetch("/api/admin/analyzed", {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({ slug: c.value, analyzed: true }),
@@ -107,8 +109,15 @@ function adminBulkActionsScript(): string {
                 slugCell.insertBefore(wrapper.firstChild, slugCell.firstChild);
               }
               c.checked = false;
-              updateToolbar();
             });
+          });
+          Promise.all(requests).then(function () {
+            markBtn.textContent = "✓ Marked";
+            markBtn.classList.add("flash-success");
+            setTimeout(function () {
+              markBtn.classList.remove("flash-success");
+              updateToolbar();
+            }, 1500);
           });
         });
       }

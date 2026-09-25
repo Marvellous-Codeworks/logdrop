@@ -307,5 +307,8 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain("analyzed: true");
     // Disabled by default, like the other bulk-action buttons, until a row is checked.
     expect(html).toMatch(/id="bulk-mark-analyzed-btn"[^>]*disabled/);
+    // Same flash-success feedback as the bulk-copy button, once all requests settle.
+    expect(html).toContain("Promise.all(requests)");
+    expect(html).toContain('classList.add("flash-success")');
   });
 });
