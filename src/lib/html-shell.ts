@@ -51,7 +51,7 @@ export function navHtml(showAdminLink: boolean): string {
 
 export function footerHtml(): string {
   return `<footer class="footer">
-    <span>logdrop v${LOGDROP_VERSION} — a plain-text drop-off, gone in a week</span>
+    <span>logdrop v${LOGDROP_VERSION} — a plain-text drop-off that expires automatically</span>
     <span class="footer__links">
       <a href="http://marvellouscode.works/logdrop">logdrop</a>
       <a href="https://github.com/Marvellous-Codeworks/logdrop">Source</a>
