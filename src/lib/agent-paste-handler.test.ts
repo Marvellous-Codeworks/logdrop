@@ -74,18 +74,29 @@ describe("handleAgentPasteRead", () => {
       originalFilename: null,
       issueUrl: null,
       label: null,
-      uploaderIp: null,
-      uploaderCountry: null,
-      userAgent: null,
+      uploaderIp: "1.2.3.4",
+      uploaderCountry: "IT",
+      userAgent: "test-agent",
       analyzed: false,
     }));
 
     const res = await handleAgentPasteRead(agentRequest(`Bearer ${SECRET}`), "abc123", SECRET);
-    const json = (await res.json()) as { slug: string; content: string; meta: { sizeBytes: number } };
+    const json = (await res.json()) as Record<string, unknown>;
 
     expect(res.status).toBe(200);
     expect(json.slug).toBe("abc123");
     expect(json.content).toBe("log line 1\nlog line 2");
-    expect(json.meta.sizeBytes).toBe(22);
+
+    // Verify sensitive fields are redacted
+    const meta = json.meta as Record<string, unknown>;
+    expect(meta.uploaderIp).toBeUndefined();
+    expect(meta.uploaderCountry).toBeUndefined();
+    expect(meta.userAgent).toBeUndefined();
+
+    // Verify other fields are still present
+    expect(meta.sizeBytes).toBe(22);
+    expect(meta.createdAt).toBe("2026-01-01T00:00:00.000Z");
+    expect(meta.expiresAt).toBe("2026-01-08T00:00:00.000Z");
+    expect(meta.analyzed).toBe(false);
   });
 });

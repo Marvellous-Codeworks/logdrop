@@ -14,5 +14,8 @@ export async function handleAgentPasteRead(
     return new Response("Not found", { status: 404 });
   }
 
-  return Response.json({ slug, content, meta });
+  // Redact sensitive fields from meta before returning to agent
+  const { uploaderIp, uploaderCountry, userAgent, ...safeMetaFields } = meta;
+
+  return Response.json({ slug, content, meta: safeMetaFields });
 }
