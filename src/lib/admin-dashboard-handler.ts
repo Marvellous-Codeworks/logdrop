@@ -32,6 +32,7 @@ function adminBulkActionsScript(): string {
       var copyBtn = document.getElementById("bulk-copy-btn");
       var filterInput = document.getElementById("admin-filter");
       var bulkForm = document.getElementById("bulk-form");
+      var hideAnalyzed = document.getElementById("hide-analyzed");
 
       function updateToolbar() {
         var checked = rowChecks().filter(function (c) { return c.checked; });
@@ -61,16 +62,34 @@ function adminBulkActionsScript(): string {
         });
       }
 
-      if (filterInput) {
-        filterInput.addEventListener("input", function () {
-          var q = filterInput.value.trim().toLowerCase();
-          document.querySelectorAll("table.pastes tbody tr").forEach(function (tr) {
-            var haystack = (tr.getAttribute("data-search") || "").toLowerCase();
-            tr.style.display = q === "" || haystack.indexOf(q) !== -1 ? "" : "none";
-          });
-          updateToolbar();
+      function applyFilters() {
+        var q = filterInput ? filterInput.value.trim().toLowerCase() : "";
+        var hide = !!(hideAnalyzed && hideAnalyzed.checked);
+        document.querySelectorAll("table.pastes tbody tr").forEach(function (tr) {
+          var haystack = (tr.getAttribute("data-search") || "").toLowerCase();
+          var matchesText = q === "" || haystack.indexOf(q) !== -1;
+          var matchesAnalyzed = !hide || tr.getAttribute("data-analyzed") !== "1";
+          tr.style.display = matchesText && matchesAnalyzed ? "" : "none";
         });
+        updateToolbar();
       }
+
+      if (filterInput) filterInput.addEventListener("input", applyFilters);
+      if (hideAnalyzed) hideAnalyzed.addEventListener("change", applyFilters);
+
+      document.querySelectorAll(".analyzed-check").forEach(function (cb) {
+        cb.addEventListener("change", function () {
+          var tr = cb.closest("tr");
+          if (tr) tr.setAttribute("data-analyzed", cb.checked ? "1" : "0");
+          fetch("/api/admin/analyzed", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ slug: cb.dataset.slug, analyzed: cb.checked }),
+          }).then(function (res) {
+            if (!res.ok) cb.checked = !cb.checked;
+          });
+        });
+      });
 
       if (copyBtn) {
         copyBtn.addEventListener("click", async function () {
@@ -112,7 +131,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
   const rows = pastes
     .map((p) => {
       const searchText = [p.slug, p.label ?? "", p.uploaderCountry ?? ""].join(" ");
-      return `<tr data-search="${escapeHtml(searchText)}">
+      return `<tr data-search="${escapeHtml(searchText)}" data-analyzed="${p.analyzed ? "1" : "0"}">
         <td><input type="checkbox" class="row-check" name="selected" value="${escapeHtml(p.slug)}" aria-label="Select ${escapeHtml(p.slug)}" /></td>
         <td class="col-slug"><a href="/r/${escapeHtml(p.slug)}">${escapeHtml(p.slug)}</a></td>
         <td><time data-iso="${escapeHtml(p.createdAt)}">${escapeHtml(formatDateFallback(p.createdAt))}</time></td>
@@ -125,6 +144,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
             ? `<a class="chip chip--link" href="${escapeHtml(p.issueUrl)}">${escapeHtml(issueNumberFromUrl(p.issueUrl))}</a>`
             : ""
         }</td>
+        <td><input type="checkbox" class="analyzed-check" data-slug="${escapeHtml(p.slug)}" aria-label="Mark ${escapeHtml(p.slug)} analyzed" ${p.analyzed ? "checked" : ""} /></td>
         <td><button class="btn btn--danger" type="submit" name="slug" value="${escapeHtml(p.slug)}" formaction="/api/admin/delete">Delete</button></td>
       </tr>`;
     })
@@ -145,6 +165,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
           : `<form id="bulk-form" method="POST" action="/api/admin/delete-bulk">
         <div class="table-toolbar">
           <input type="search" id="admin-filter" class="input" placeholder="Filter by slug, label, or country" style="max-width: 24rem;" />
+          <label class="filter-toggle"><input type="checkbox" id="hide-analyzed" /> Hide analyzed</label>
           <div class="table-toolbar__actions">
             <button type="button" id="bulk-copy-btn" class="btn btn--secondary" disabled>Copy links</button>
             <button type="submit" id="bulk-delete-btn" class="btn btn--danger" disabled>Delete selected</button>
@@ -154,7 +175,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
           <table class="pastes">
             <thead><tr>
               <th><input type="checkbox" id="select-all" aria-label="Select all" /></th>
-              <th>Slug</th><th>Created</th><th>Expires</th><th>Bytes</th><th>Country</th><th>Label</th><th>Issue</th><th></th>
+              <th>Slug</th><th>Created</th><th>Expires</th><th>Bytes</th><th>Country</th><th>Label</th><th>Issue</th><th>Analyzed</th><th></th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
