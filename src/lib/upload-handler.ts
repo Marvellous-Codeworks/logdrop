@@ -76,6 +76,7 @@ export async function handleUpload(request: Request): Promise<Response> {
       uploaderIp: clientIp ?? null,
       uploaderCountry: request.headers.get("x-vercel-ip-country"),
       userAgent: request.headers.get("user-agent"),
+      analyzed: false,
     },
   });
 

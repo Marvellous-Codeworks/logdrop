@@ -9,4 +9,5 @@ export interface PasteMeta {
   uploaderIp: string | null;
   uploaderCountry: string | null;
   userAgent: string | null;
+  analyzed: boolean;
 }

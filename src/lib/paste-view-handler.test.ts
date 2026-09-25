@@ -113,6 +113,7 @@ describe("handlePasteView", () => {
       uploaderIp: null,
       uploaderCountry: null,
       userAgent: null,
+      analyzed: false,
     }));
     const request = new Request("https://logdrop.example/r/abc123");
 
@@ -141,6 +142,7 @@ describe("handlePasteView", () => {
       uploaderIp: null,
       uploaderCountry: null,
       userAgent: null,
+      analyzed: false,
     }));
 
     const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);

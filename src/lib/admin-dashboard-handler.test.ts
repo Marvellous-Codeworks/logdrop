@@ -88,6 +88,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: "IT",
         userAgent: null,
+        analyzed: false,
       },
     ]);
     const request = new Request("https://logdrop.example/admin");
@@ -116,6 +117,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: '<img src=x onerror="alert(1)">',
         userAgent: null,
+        analyzed: false,
       },
     ]);
 
@@ -140,6 +142,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: null,
         userAgent: null,
+        analyzed: false,
       },
       {
         slug: "def456",
@@ -152,6 +155,7 @@ describe("handleAdminDashboard", () => {
         uploaderIp: null,
         uploaderCountry: null,
         userAgent: null,
+        analyzed: false,
       },
     ]);
 

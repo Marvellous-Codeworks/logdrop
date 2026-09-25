@@ -90,6 +90,7 @@ function baseMeta(overrides: Partial<Parameters<typeof savePaste>[0]["meta"]> = 
     uploaderIp: null,
     uploaderCountry: null,
     userAgent: null,
+    analyzed: false,
     ...overrides,
   };
 }
