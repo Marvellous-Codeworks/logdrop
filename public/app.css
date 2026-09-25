@@ -478,6 +478,19 @@ label {
 }
 .code-card__bar .btn:focus-visible { outline-color: var(--color-accent); }
 
+/*
+ * Keep the flash-success green during hover too. `.code-card__bar
+ * .btn:hover:not(:disabled)` above is (0,4,0) (2 classes + :hover +
+ * :disabled inside :not(), which counts as a pseudo-class), which beats
+ * `.btn.flash-success` alone at (0,2,0), so without this rule the green
+ * "Copied" text disappears the instant the user hovers. This rule is
+ * (0,5,0) (3 classes + :hover + :disabled), which wins.
+ */
+.code-card__bar .btn.flash-success,
+.code-card__bar .btn.flash-success:hover:not(:disabled) {
+  color: var(--color-success);
+}
+
 .code-card__label {
   text-transform: uppercase;
   letter-spacing: 0.06em;
