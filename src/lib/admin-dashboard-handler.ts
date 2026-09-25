@@ -77,27 +77,6 @@ function adminBulkActionsScript(): string {
       if (filterInput) filterInput.addEventListener("input", applyFilters);
       if (hideAnalyzed) hideAnalyzed.addEventListener("change", applyFilters);
 
-      document.querySelectorAll(".analyzed-check").forEach(function (cb) {
-        cb.addEventListener("change", function () {
-          var tr = cb.closest("tr");
-          var originalValue = tr ? tr.getAttribute("data-analyzed") : null;
-          if (tr) tr.setAttribute("data-analyzed", cb.checked ? "1" : "0");
-          fetch("/api/admin/analyzed", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ slug: cb.dataset.slug, analyzed: cb.checked }),
-          }).then(function (res) {
-            if (!res.ok) {
-              cb.checked = !cb.checked;
-              if (tr) tr.setAttribute("data-analyzed", originalValue);
-            }
-          }).catch(function () {
-            cb.checked = !cb.checked;
-            if (tr) tr.setAttribute("data-analyzed", originalValue);
-          });
-        });
-      });
-
       if (copyBtn) {
         copyBtn.addEventListener("click", async function () {
           var links = rowChecks()
@@ -186,7 +165,11 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
       const searchText = [p.slug, p.label ?? "", p.uploaderCountry ?? ""].join(" ");
       return `<tr data-search="${escapeHtml(searchText)}" data-analyzed="${p.analyzed ? "1" : "0"}">
         <td><input type="checkbox" class="row-check" name="selected" value="${escapeHtml(p.slug)}" aria-label="Select ${escapeHtml(p.slug)}" /></td>
-        <td class="col-slug"><a href="/r/${escapeHtml(p.slug)}">${escapeHtml(p.slug)}</a></td>
+        <td class="col-slug">${
+          p.analyzed
+            ? `<svg class="analyzed-badge" role="img" aria-label="Analyzed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`
+            : ""
+        }<a href="/r/${escapeHtml(p.slug)}">${escapeHtml(p.slug)}</a></td>
         <td><time data-iso="${escapeHtml(p.createdAt)}">${escapeHtml(formatDateFallback(p.createdAt))}</time></td>
         <td><time data-iso="${escapeHtml(p.expiresAt)}">${escapeHtml(formatDateFallback(p.expiresAt))}</time></td>
         <td class="tabular">${escapeHtml(String(p.sizeBytes))}</td>
@@ -197,7 +180,6 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
             ? `<a class="chip chip--link" href="${escapeHtml(p.issueUrl)}">${escapeHtml(issueNumberFromUrl(p.issueUrl))}</a>`
             : ""
         }</td>
-        <td><input type="checkbox" class="analyzed-check" data-slug="${escapeHtml(p.slug)}" aria-label="Mark ${escapeHtml(p.slug)} analyzed" ${p.analyzed ? "checked" : ""} /></td>
         <td><button class="btn btn--danger" type="submit" name="slug" value="${escapeHtml(p.slug)}" formaction="/api/admin/delete">Delete</button></td>
       </tr>`;
     })
@@ -228,7 +210,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
           <table class="pastes">
             <thead><tr>
               <th><input type="checkbox" id="select-all" aria-label="Select all" /></th>
-              <th>Slug</th><th>Created</th><th>Expires</th><th>Bytes</th><th>Country</th><th>Label</th><th>Issue</th><th>Analyzed</th><th></th>
+              <th>Slug</th><th>Created</th><th>Expires</th><th>Bytes</th><th>Country</th><th>Label</th><th>Issue</th><th></th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>

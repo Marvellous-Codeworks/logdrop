@@ -168,7 +168,7 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain("#7");
   });
 
-  test("renders an analyzed checkbox per row reflecting current state, and the filter toggle", async () => {
+  test("renders a read-only analyzed badge next to the slug when analyzed, and none when not", async () => {
     getSessionEmailMock.mockImplementation(() => "admin@example.com");
     listPastesMock.mockImplementation(async () => [
       {
@@ -202,17 +202,15 @@ describe("handleAdminDashboard", () => {
     const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
     const html = await res.text();
 
-    expect(html).toContain('id="hide-analyzed"');
-    // The analyzed row's checkbox is checked; the unanalyzed row's isn't.
-    // Bounded to `[^>]*` (stops at the tag's closing `>`) rather than an
-    // unbounded `[^]*?`: the page's pre-existing bulk-select script
-    // legitimately contains many `.checked` property references (e.g.
-    // `var checked = rowChecks()...`, `c.checked`, `selectAll.checked`)
-    // after every row in the DOM, so an unbounded scan would always find a
-    // "checked" match downstream regardless of this row's actual state.
-    expect(html).toMatch(/data-slug="done123"[^>]*checked/);
-    expect(html).not.toMatch(/data-slug="todo456"[^>]*checked/);
-    expect(html).toContain("/api/admin/analyzed");
+    expect(html).not.toContain("<th>Analyzed</th>");
+    expect(html).not.toContain("analyzed-check");
+    // The badge renders right before the analyzed row's own slug link, and
+    // nowhere before the unanalyzed row's.
+    // Extract the col-slug cells and check their content
+    const doneRowMatch = html.match(/<tr[^>]*data-search="done123[^>]*>[\s\S]*?<\/tr>/);
+    const todoRowMatch = html.match(/<tr[^>]*data-search="todo456[^>]*>[\s\S]*?<\/tr>/);
+    expect(doneRowMatch?.[0]).toMatch(/analyzed-badge/);
+    expect(todoRowMatch?.[0]).not.toMatch(/analyzed-badge/);
   });
 
   test("wires the bulk-copy button to flash a success state on click", async () => {
