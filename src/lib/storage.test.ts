@@ -204,4 +204,52 @@ describe("storage", () => {
     ).length;
     expect(metaBlobCount).toBe(1);
   });
+
+  test("updatePasteMeta writes the new meta before cleaning up, so getPasteMeta is readable immediately after", async () => {
+    await savePaste({ slug: "writefirst", content: "unchanged", meta: baseMeta({ sizeBytes: 9 }) });
+
+    const meta = await getPasteMeta("writefirst");
+    if (!meta) throw new Error("expected meta to exist");
+    await updatePasteMeta({ ...meta, analyzed: true, label: "updated" });
+
+    // The new meta is readable right away (main regression guard: the paste
+    // is never left without a valid meta blob).
+    const updated = await getPasteMeta("writefirst");
+    expect(updated?.analyzed).toBe(true);
+    expect(updated?.label).toBe("updated");
+
+    // Still exactly one meta blob remains under the slug's prefix.
+    const metaBlobCount = [...blobStore.keys()].filter(
+      (p) => p.startsWith("uploads/writefirst/") && p.includes("meta"),
+    ).length;
+    expect(metaBlobCount).toBe(1);
+  });
+
+  test("getPasteMeta normalizes a missing `analyzed` field to false (legacy pastes)", async () => {
+    // Simulate a paste written before the `analyzed` field existed by
+    // inserting a meta blob directly into the mocked blob store, bypassing
+    // savePaste's normal path (which always includes `analyzed`).
+    const legacyMeta = {
+      slug: "legacy",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 3,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      // `analyzed` intentionally omitted.
+    };
+    blobStore.set("uploads/legacy/meta-legacy.json", JSON.stringify(legacyMeta));
+    blobStore.set("uploads/legacy/content-legacy", "old content");
+
+    const meta = await getPasteMeta("legacy");
+    expect(meta?.analyzed).toBe(false);
+
+    const pastes = await listPastes();
+    const legacy = pastes.find((p) => p.slug === "legacy");
+    expect(legacy?.analyzed).toBe(false);
+  });
 });

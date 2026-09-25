@@ -70,14 +70,24 @@ export async function savePaste(input: {
 }
 
 export async function updatePasteMeta(meta: PasteMeta): Promise<void> {
-  const existing = await findSlugBlob(meta.slug, "meta");
-  if (existing) await del([existing.url]);
-  await put(`${slugPrefix(meta.slug)}meta.json`, JSON.stringify(meta), {
+  // Write the new meta blob FIRST, then clean up any other meta blob(s) for
+  // this slug. This ordering means a failure partway through never leaves
+  // the paste without a readable meta blob: either the write fails (old meta
+  // is still intact) or the write succeeds and cleanup fails (both old and
+  // new meta exist briefly, self-healing on the next write). The previous
+  // delete-then-write order could drop the paste's meta entirely if `put`
+  // failed after `del` succeeded.
+  const written = await put(`${slugPrefix(meta.slug)}meta.json`, JSON.stringify(meta), {
     access: "public",
     addRandomSuffix: true,
     cacheControlMaxAge: CACHE_CONTROL_MAX_AGE_SECONDS,
     contentType: "application/json",
   });
+  const blobs = await listAll(slugPrefix(meta.slug));
+  const staleMetaUrls = blobs
+    .filter((blob) => blob.url !== written.url && blobKind(blob.pathname) === "meta")
+    .map((blob) => blob.url);
+  if (staleMetaUrls.length > 0) await del(staleMetaUrls);
 }
 
 export async function getPasteContent(slug: string): Promise<string | null> {
@@ -96,7 +106,12 @@ export async function getPasteMeta(slug: string): Promise<PasteMeta | null> {
     const blob = await findSlugBlob(slug, "meta");
     if (!blob) return null;
     const res = await fetch(blob.url);
-    return res.ok ? ((await res.json()) as PasteMeta) : null;
+    if (!res.ok) return null;
+    // Normalize `analyzed` for meta blobs written before this field existed;
+    // without this, old pastes come back with `analyzed: undefined` despite
+    // the type claiming `boolean`.
+    const raw = (await res.json()) as PasteMeta;
+    return { ...raw, analyzed: raw.analyzed === true };
   } catch {
     return null;
   }
@@ -115,7 +130,9 @@ export async function listPastes(): Promise<PasteMeta[]> {
     if (blobKind(blob.pathname) !== "meta") continue;
     const res = await fetch(blob.url);
     if (!res.ok) continue;
-    metas.push((await res.json()) as PasteMeta);
+    // Same legacy-field normalization as getPasteMeta above.
+    const raw = (await res.json()) as PasteMeta;
+    metas.push({ ...raw, analyzed: raw.analyzed === true });
   }
   return metas.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
