@@ -593,20 +593,19 @@ table.pastes .col-label, table.pastes .col-slug { white-space: normal; }
   flex-wrap: wrap;
 }
 
-.filter-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3xs);
-  font-size: var(--text-sm);
-  color: var(--color-ink-2);
-  cursor: pointer;
-}
-
 .row-check, #select-all {
   width: 1.1rem;
   height: 1.1rem;
   accent-color: var(--color-accent);
   cursor: pointer;
+}
+
+.analyzed-badge {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-success);
+  vertical-align: -0.15em;
+  margin-right: var(--space-3xs);
 }
 
 table.pastes th:first-child, table.pastes td:first-child { width: 1px; }

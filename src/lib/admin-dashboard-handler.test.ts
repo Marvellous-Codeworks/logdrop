@@ -168,7 +168,7 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain("#7");
   });
 
-  test("renders an analyzed checkbox per row reflecting current state, and the filter toggle", async () => {
+  test("renders a read-only analyzed badge next to the slug when analyzed, and none when not", async () => {
     getSessionEmailMock.mockImplementation(() => "admin@example.com");
     listPastesMock.mockImplementation(async () => [
       {
@@ -202,17 +202,15 @@ describe("handleAdminDashboard", () => {
     const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
     const html = await res.text();
 
-    expect(html).toContain('id="hide-analyzed"');
-    // The analyzed row's checkbox is checked; the unanalyzed row's isn't.
-    // Bounded to `[^>]*` (stops at the tag's closing `>`) rather than an
-    // unbounded `[^]*?`: the page's pre-existing bulk-select script
-    // legitimately contains many `.checked` property references (e.g.
-    // `var checked = rowChecks()...`, `c.checked`, `selectAll.checked`)
-    // after every row in the DOM, so an unbounded scan would always find a
-    // "checked" match downstream regardless of this row's actual state.
-    expect(html).toMatch(/data-slug="done123"[^>]*checked/);
-    expect(html).not.toMatch(/data-slug="todo456"[^>]*checked/);
-    expect(html).toContain("/api/admin/analyzed");
+    expect(html).not.toContain("<th>Analyzed</th>");
+    expect(html).not.toContain("analyzed-check");
+    // The badge renders right before the analyzed row's own slug link, and
+    // nowhere before the unanalyzed row's.
+    // Extract the col-slug cells and check their content
+    const doneRowMatch = html.match(/<tr[^>]*data-search="done123[^>]*>[\s\S]*?<\/tr>/);
+    const todoRowMatch = html.match(/<tr[^>]*data-search="todo456[^>]*>[\s\S]*?<\/tr>/);
+    expect(doneRowMatch?.[0]).toMatch(/analyzed-badge/);
+    expect(todoRowMatch?.[0]).not.toMatch(/analyzed-badge/);
   });
 
   test("wires the bulk-copy button to flash a success state on click", async () => {
@@ -251,5 +249,34 @@ describe("handleAdminDashboard", () => {
       if (original === undefined) delete process.env.ADMIN_EMAILS;
       else process.env.ADMIN_EMAILS = original;
     }
+  });
+
+  test("renders a hide-analyzed toggle button in the toolbar, and filters rows by the data-analyzed attribute", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "done123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 5,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+        analyzed: true,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('id="hide-analyzed-btn"');
+    expect(html).toContain(">Hide analyzed<");
+    expect(html).not.toContain('id="hide-analyzed"');
+    expect(html).not.toContain("filter-toggle");
+    expect(html).toContain('data-analyzed="1"');
+    expect(html).toContain('hidingAnalyzed = !hidingAnalyzed');
   });
 });

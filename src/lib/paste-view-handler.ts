@@ -62,12 +62,25 @@ export async function handlePasteView(
         </div>
         <pre id="paste-content" class="code-card__body">${escapeHtml(content)}</pre>
       </div>
-      <p style="margin-top: var(--space-md);">
+      <div style="margin-top: var(--space-md); display: flex; gap: var(--space-sm);">
         <button class="btn btn--secondary" id="download-btn" type="button">Download as .txt</button>
-      </p>
+        <button class="btn btn--secondary" id="analyzed-btn" type="button" data-analyzed="${meta.analyzed ? "1" : "0"}">${meta.analyzed ? "Unmark as analyzed" : "Mark as analyzed"}</button>
+        <form id="delete-form" method="POST" action="/api/admin/delete" style="display: inline;">
+          <input type="hidden" name="slug" value="${escapeHtml(slug)}" />
+          <button class="btn btn--danger" id="delete-btn" type="button">Delete</button>
+        </form>
+      </div>
     </main>
     ${footerHtml()}
   </div>
+  <dialog id="confirm-dialog" class="result-dialog">
+    <p class="result-dialog__kicker">Confirm</p>
+    <h2 id="confirm-message">Are you sure?</h2>
+    <div class="result-dialog__actions">
+      <button type="button" class="btn btn--secondary" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn" id="confirm-ok">Confirm</button>
+    </div>
+  </dialog>
   <script>
     document.getElementById("download-btn").addEventListener("click", () => {
       const text = document.getElementById("paste-content").textContent;
@@ -89,6 +102,83 @@ export async function handlePasteView(
         delete btn.dataset.state;
         btn.classList.remove("flash-success");
       }, 1500);
+    });
+
+    const confirmDialog = document.getElementById("confirm-dialog");
+    const confirmMessage = document.getElementById("confirm-message");
+    const confirmCancelBtn = document.getElementById("confirm-cancel");
+    const confirmOkBtn = document.getElementById("confirm-ok");
+    let pendingAction = null;
+
+    function openConfirm(message, onConfirm, options) {
+      confirmMessage.textContent = message;
+      pendingAction = onConfirm;
+      confirmOkBtn.textContent = (options && options.okLabel) || "Confirm";
+      confirmOkBtn.classList.toggle("btn--danger", !!(options && options.danger));
+      confirmOkBtn.classList.toggle("btn--secondary", !(options && options.danger));
+      confirmDialog.showModal();
+    }
+
+    confirmCancelBtn.addEventListener("click", () => {
+      pendingAction = null;
+      confirmDialog.close();
+    });
+    confirmDialog.addEventListener("cancel", () => {
+      pendingAction = null;
+    });
+    confirmOkBtn.addEventListener("click", () => {
+      confirmDialog.close();
+      const action = pendingAction;
+      pendingAction = null;
+      if (action) action();
+    });
+
+    const analyzedBtn = document.getElementById("analyzed-btn");
+    analyzedBtn.addEventListener("click", () => {
+      const isAnalyzed = analyzedBtn.dataset.analyzed === "1";
+      const next = !isAnalyzed;
+      openConfirm(
+        next ? "Mark this upload as analyzed?" : "Unmark this upload as analyzed?",
+        async () => {
+          try {
+            const res = await fetch("/api/admin/analyzed", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ slug: "${slug}", analyzed: next }),
+            });
+            if (res.status === 401) {
+              const nextParam = encodeURIComponent(window.location.pathname);
+              window.location.href = "/admin/login?next=" + nextParam;
+              return;
+            }
+            if (res.ok) {
+              analyzedBtn.dataset.analyzed = next ? "1" : "0";
+              analyzedBtn.textContent = next ? "Unmark as analyzed" : "Mark as analyzed";
+              return;
+            }
+            throw new Error("analyzed toggle failed");
+          } catch (e) {
+            const originalText = analyzedBtn.textContent;
+            analyzedBtn.textContent = "Error — try again";
+            setTimeout(() => {
+              analyzedBtn.textContent = originalText;
+            }, 2000);
+          }
+        },
+        { okLabel: next ? "Mark" : "Unmark" },
+      );
+    });
+
+    const deleteForm = document.getElementById("delete-form");
+    const deleteBtn = document.getElementById("delete-btn");
+    deleteBtn.addEventListener("click", () => {
+      openConfirm(
+        "Delete \"${slug}\"? This can't be undone.",
+        () => {
+          deleteForm.requestSubmit();
+        },
+        { danger: true, okLabel: "Delete" },
+      );
     });
   </script>
   ${localizeDatesScript()}
