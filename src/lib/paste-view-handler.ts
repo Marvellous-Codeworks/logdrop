@@ -43,6 +43,9 @@ export async function handlePasteView(
   <div class="shell">
     ${navHtml(true)}
     <main class="page page--wide">
+      <a class="icon-btn" href="/admin" aria-label="Back to admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </a>
       <p class="lede">
         Uploaded <time data-iso="${escapeHtml(meta.createdAt)}">${escapeHtml(formatDateFallback(meta.createdAt))}</time>
         · expires <time data-iso="${escapeHtml(meta.expiresAt)}">${escapeHtml(formatDateFallback(meta.expiresAt))}</time>
@@ -93,9 +96,9 @@ export async function handlePasteView(
       URL.revokeObjectURL(url);
     });
     document.getElementById("copy-btn").addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
       const text = document.getElementById("paste-content").textContent;
       await navigator.clipboard.writeText(text);
-      const btn = e.currentTarget;
       btn.dataset.state = "copied";
       btn.classList.add("flash-success");
       setTimeout(() => {
