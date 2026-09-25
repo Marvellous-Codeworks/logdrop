@@ -213,6 +213,31 @@ describe("handleAdminDashboard", () => {
     expect(html).toContain("/api/admin/analyzed");
   });
 
+  test("wires the bulk-copy button to flash a success state on click", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "abc123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 5,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+        analyzed: false,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('classList.add("flash-success")');
+    expect(html).toContain('classList.remove("flash-success")');
+  });
+
   test("passes the current ADMIN_EMAILS allow-list to the session check", async () => {
     const original = process.env.ADMIN_EMAILS;
     process.env.ADMIN_EMAILS = " Admin@Example.com , other@example.com";

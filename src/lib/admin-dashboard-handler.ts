@@ -105,9 +105,12 @@ function adminBulkActionsScript(): string {
             .map(function (c) { return window.location.origin + "/r/" + c.value; });
           if (links.length === 0) return;
           await navigator.clipboard.writeText(links.join("\\n"));
-          var prev = copyBtn.textContent;
-          copyBtn.textContent = "Copied";
-          setTimeout(function () { updateToolbar(); }, 2000);
+          copyBtn.textContent = "✓ Copied";
+          copyBtn.classList.add("flash-success");
+          setTimeout(function () {
+            copyBtn.classList.remove("flash-success");
+            updateToolbar();
+          }, 1500);
         });
       }
 
