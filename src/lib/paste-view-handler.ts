@@ -173,7 +173,7 @@ export async function handlePasteView(
     const deleteBtn = document.getElementById("delete-btn");
     deleteBtn.addEventListener("click", () => {
       openConfirm(
-        "Delete \"${slug}\"? This can't be undone.",
+        "Delete \\"${slug}\\"? This can't be undone.",
         () => {
           deleteForm.requestSubmit();
         },

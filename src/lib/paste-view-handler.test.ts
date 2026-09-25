@@ -255,4 +255,45 @@ describe("handlePasteView", () => {
     // Delete does NOT use a native confirm() — it goes through the same dialog as analyzed.
     expect(html).not.toContain('confirm("Delete');
   });
+
+  test("the rendered inline <script> is syntactically valid JavaScript", async () => {
+    // Regression guard: the server-side template literal that builds this
+    // page's HTML can silently swallow backslashes meant for the CLIENT
+    // script (e.g. `\"` is a valid escape in a template literal too, so it
+    // collapses to a bare `"` in the rendered output instead of surviving
+    // as `\"` for the browser). `toContain` assertions elsewhere in this
+    // file can't catch that class of bug — only actually parsing the
+    // emitted script can. This test does that with a real JS parser.
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+    }));
+
+    const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
+    const html = await res.text();
+
+    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
+    // The page renders several inline <script> blocks (theme-init in <head>,
+    // this file's button wiring, date localization, theme-toggle wiring) —
+    // check all of them, not just the first match.
+    expect(scripts.length).toBeGreaterThan(1);
+    for (const source of scripts) {
+      // `new Function(...)` parses the source without executing it at module
+      // scope, and throws a SyntaxError synchronously if the script is
+      // malformed — exactly the failure mode a browser hits when this class
+      // of bug reaches production.
+      expect(() => new Function(source)).not.toThrow();
+    }
+  });
 });
