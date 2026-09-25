@@ -32,7 +32,8 @@ function adminBulkActionsScript(): string {
       var copyBtn = document.getElementById("bulk-copy-btn");
       var filterInput = document.getElementById("admin-filter");
       var bulkForm = document.getElementById("bulk-form");
-      var hideAnalyzed = document.getElementById("hide-analyzed");
+      var hideAnalyzedBtn = document.getElementById("hide-analyzed-btn");
+      var hidingAnalyzed = false;
 
       function updateToolbar() {
         var checked = rowChecks().filter(function (c) { return c.checked; });
@@ -64,7 +65,7 @@ function adminBulkActionsScript(): string {
 
       function applyFilters() {
         var q = filterInput ? filterInput.value.trim().toLowerCase() : "";
-        var hide = !!(hideAnalyzed && hideAnalyzed.checked);
+        var hide = hidingAnalyzed;
         document.querySelectorAll("table.pastes tbody tr").forEach(function (tr) {
           var haystack = (tr.getAttribute("data-search") || "").toLowerCase();
           var matchesText = q === "" || haystack.indexOf(q) !== -1;
@@ -75,7 +76,13 @@ function adminBulkActionsScript(): string {
       }
 
       if (filterInput) filterInput.addEventListener("input", applyFilters);
-      if (hideAnalyzed) hideAnalyzed.addEventListener("change", applyFilters);
+      if (hideAnalyzedBtn) {
+        hideAnalyzedBtn.addEventListener("click", function () {
+          hidingAnalyzed = !hidingAnalyzed;
+          hideAnalyzedBtn.textContent = hidingAnalyzed ? "Show analyzed" : "Hide analyzed";
+          applyFilters();
+        });
+      }
 
       if (copyBtn) {
         copyBtn.addEventListener("click", async function () {
@@ -200,8 +207,8 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
           : `<form id="bulk-form" method="POST" action="/api/admin/delete-bulk">
         <div class="table-toolbar">
           <input type="search" id="admin-filter" class="input" placeholder="Filter by slug, label, or country" style="max-width: 24rem;" />
-          <label class="filter-toggle"><input type="checkbox" id="hide-analyzed" /> Hide analyzed</label>
           <div class="table-toolbar__actions">
+            <button type="button" id="hide-analyzed-btn" class="btn btn--secondary">Hide analyzed</button>
             <button type="button" id="bulk-copy-btn" class="btn btn--secondary" disabled>Copy links</button>
             <button type="submit" id="bulk-delete-btn" class="btn btn--danger" disabled>Delete selected</button>
           </div>

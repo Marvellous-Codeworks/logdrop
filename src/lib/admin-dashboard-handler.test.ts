@@ -250,4 +250,33 @@ describe("handleAdminDashboard", () => {
       else process.env.ADMIN_EMAILS = original;
     }
   });
+
+  test("renders a hide-analyzed toggle button in the toolbar, and filters rows by the data-analyzed attribute", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => [
+      {
+        slug: "done123",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        expiresAt: "2026-01-08T00:00:00.000Z",
+        sizeBytes: 5,
+        originalFilename: null,
+        issueUrl: null,
+        label: null,
+        uploaderIp: null,
+        uploaderCountry: null,
+        userAgent: null,
+        analyzed: true,
+      },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    expect(html).toContain('id="hide-analyzed-btn"');
+    expect(html).toContain(">Hide analyzed<");
+    expect(html).not.toContain('id="hide-analyzed"');
+    expect(html).not.toContain("filter-toggle");
+    expect(html).toContain('data-analyzed="1"');
+    expect(html).toContain('hidingAnalyzed = !hidingAnalyzed');
+  });
 });
