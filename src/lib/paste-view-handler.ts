@@ -137,39 +137,33 @@ export async function handlePasteView(
     });
 
     const analyzedBtn = document.getElementById("analyzed-btn");
-    analyzedBtn.addEventListener("click", () => {
+    analyzedBtn.addEventListener("click", async () => {
       const isAnalyzed = analyzedBtn.dataset.analyzed === "1";
       const next = !isAnalyzed;
-      openConfirm(
-        next ? "Mark this upload as analyzed?" : "Unmark this upload as analyzed?",
-        async () => {
-          try {
-            const res = await fetch("/api/admin/analyzed", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ slug: "${slug}", analyzed: next }),
-            });
-            if (res.status === 401) {
-              const nextParam = encodeURIComponent(window.location.pathname);
-              window.location.href = "/admin/login?next=" + nextParam;
-              return;
-            }
-            if (res.ok) {
-              analyzedBtn.dataset.analyzed = next ? "1" : "0";
-              analyzedBtn.textContent = next ? "Unmark as analyzed" : "Mark as analyzed";
-              return;
-            }
-            throw new Error("analyzed toggle failed");
-          } catch (e) {
-            const originalText = analyzedBtn.textContent;
-            analyzedBtn.textContent = "Error — try again";
-            setTimeout(() => {
-              analyzedBtn.textContent = originalText;
-            }, 2000);
-          }
-        },
-        { okLabel: next ? "Mark" : "Unmark" },
-      );
+      try {
+        const res = await fetch("/api/admin/analyzed", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ slug: "${slug}", analyzed: next }),
+        });
+        if (res.status === 401) {
+          const nextParam = encodeURIComponent(window.location.pathname);
+          window.location.href = "/admin/login?next=" + nextParam;
+          return;
+        }
+        if (res.ok) {
+          analyzedBtn.dataset.analyzed = next ? "1" : "0";
+          analyzedBtn.textContent = next ? "Unmark as analyzed" : "Mark as analyzed";
+          return;
+        }
+        throw new Error("analyzed toggle failed");
+      } catch (e) {
+        const originalText = analyzedBtn.textContent;
+        analyzedBtn.textContent = "Error — try again";
+        setTimeout(() => {
+          analyzedBtn.textContent = originalText;
+        }, 2000);
+      }
     });
 
     const deleteForm = document.getElementById("delete-form");
