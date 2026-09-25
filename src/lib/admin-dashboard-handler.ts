@@ -34,10 +34,15 @@ function adminBulkActionsScript(): string {
       var bulkForm = document.getElementById("bulk-form");
       var hideAnalyzedBtn = document.getElementById("hide-analyzed-btn");
       var hidingAnalyzed = false;
+      var markBtn = document.getElementById("bulk-mark-analyzed-btn");
 
       function updateToolbar() {
         var checked = rowChecks().filter(function (c) { return c.checked; });
         var n = checked.length;
+        if (markBtn) {
+          markBtn.disabled = n === 0;
+          markBtn.textContent = n > 0 ? "Mark as analyzed (" + n + ")" : "Mark as analyzed";
+        }
         if (deleteBtn) {
           deleteBtn.disabled = n === 0;
           deleteBtn.textContent = n > 0 ? "Delete selected (" + n + ")" : "Delete selected";
@@ -81,6 +86,28 @@ function adminBulkActionsScript(): string {
           hidingAnalyzed = !hidingAnalyzed;
           hideAnalyzedBtn.textContent = hidingAnalyzed ? "Show analyzed" : "Hide analyzed";
           applyFilters();
+        });
+      }
+
+      if (markBtn) {
+        markBtn.addEventListener("click", function () {
+          rowChecks().filter(function (c) { return c.checked; }).forEach(function (c) {
+            var tr = c.closest("tr");
+            fetch("/api/admin/analyzed", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ slug: c.value, analyzed: true }),
+            }).then(function (res) {
+              if (!res.ok || !tr) return;
+              tr.setAttribute("data-analyzed", "1");
+              var slugCell = tr.querySelector(".col-slug");
+              if (slugCell && !slugCell.querySelector(".analyzed-badge")) {
+                var wrapper = document.createElement("span");
+                wrapper.innerHTML = '<svg class="analyzed-badge" role="img" aria-label="Analyzed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>';
+                slugCell.insertBefore(wrapper.firstChild, slugCell.firstChild);
+              }
+            });
+          });
         });
       }
 
@@ -209,6 +236,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
           <input type="search" id="admin-filter" class="input" placeholder="Filter by slug, label, or country" style="max-width: 24rem;" />
           <div class="table-toolbar__actions">
             <button type="button" id="hide-analyzed-btn" class="btn btn--secondary">Hide analyzed</button>
+            <button type="button" id="bulk-mark-analyzed-btn" class="btn btn--secondary" disabled>Mark as analyzed</button>
             <button type="button" id="bulk-copy-btn" class="btn btn--secondary" disabled>Copy links</button>
             <button type="submit" id="bulk-delete-btn" class="btn btn--danger" disabled>Delete selected</button>
           </div>
