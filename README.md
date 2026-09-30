@@ -89,7 +89,7 @@ In the Vercel project → **Settings** → **Environment Variables**, set everyt
 | `RETENTION_DAYS`, `MAX_UPLOAD_BYTES` | defaults in `.env.example` are fine to start |
 | `VITE_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | step 4 |
 | `CRON_SECRET` | generated in step 5 |
-| `AGENT_API_TOKEN` | optional — generate the same way as step 5, only if you want `/api/agent/paste/<slug>` (see `.env.example` for what it's for) |
+| `AGENT_API_TOKEN` | optional — generate the same way as step 5, only if you want `/api/agent/paste/<slug>` (see `.env.example` for what it's for). Enable it for every Vercel environment (Production, Preview) where you want agent access and the dashboard notice, then redeploy |
 
 `BLOB_READ_WRITE_TOKEN` and `EDGE_CONFIG` should already be present from steps 2–3 — double check they're listed before moving on.
 
