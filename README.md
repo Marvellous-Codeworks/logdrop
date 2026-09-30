@@ -13,10 +13,10 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 
 ## Admin features
 
-- Mark an upload as **analyzed** once triaged — from its own page (single-click Mark/Unmark, no confirmation) or in bulk from the dashboard toolbar. A read-only checkmark badge next to the slug shows analyzed uploads at a glance in the dashboard table; a toolbar toggle hides/shows them.
+- Mark an upload as **analyzed** once triaged — from its own page (single-click Mark/Unmark, no confirmation) or in bulk from the dashboard toolbar. A read-only checkmark badge next to the slug shows analyzed uploads at a glance in the dashboard table; a toolbar toggle hides/shows them. The upload's own page shows who marked it as analyzed and when.
 - Delete an upload, single or in bulk, from the dashboard, or straight from the upload's own page — always through a custom on-screen confirmation modal (no native browser `confirm()`).
 - A one-click back-to-admin button on every upload's page, and green flash + checkmark feedback on every copy/mark action.
-- Optional `GET /api/agent/paste/<slug>` endpoint (see `AGENT_API_TOKEN` below) so your own AI agent tooling can read a paste's content from a plain share link without an admin login.
+- Optional `GET /api/agent/paste/<slug>` endpoint (see `AGENT_API_TOKEN` below) so your own AI agent tooling can read a paste's content from a plain share link without an admin login. When the token is configured, the dashboard says so; every agent read is recorded, so the dashboard table shows a robot badge on uploads an agent has read, and the upload's own page shows how many times and when last.
 
 ## License
 
