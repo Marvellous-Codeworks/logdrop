@@ -251,7 +251,7 @@ describe("handleAdminDashboard", () => {
     try {
       process.env.AGENT_API_TOKEN = "super-secret-token";
       let html = await (await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET)).text();
-      expect(html).toContain('class="agent-notice"');
+      expect(html).toContain('class="lede agent-notice"');
       expect(html).toContain("AI agent access enabled");
       expect(html).not.toContain("super-secret-token");
 

@@ -635,27 +635,6 @@ table.pastes .col-label, table.pastes .col-slug { white-space: normal; }
   margin-right: var(--space-3xs);
 }
 
-.agent-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2xs);
-  max-width: 48rem;
-  margin-block: 0 var(--space-md);
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-control);
-  background: var(--color-paper-2);
-  color: var(--color-ink-2);
-  font-size: var(--text-sm);
-}
-
-.agent-notice__icon {
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--color-accent);
-}
-
 .paste-activity {
   margin-block: 0 var(--space-sm);
   padding: 0;

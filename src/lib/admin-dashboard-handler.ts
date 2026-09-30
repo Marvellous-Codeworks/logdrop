@@ -242,7 +242,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
       <p class="lede">Signed in as ${escapeHtml(email)}.</p>
       ${
         process.env.AGENT_API_TOKEN
-          ? `<p class="agent-notice">${robotIconSvg("agent-notice__icon")}<span><strong>AI agent access enabled.</strong> <code>AGENT_API_TOKEN</code> is configured, so an AI agent holding the token can read uploads through <code>/api/agent/paste/&lt;slug&gt;</code>.</span></p>`
+          ? `<p class="lede agent-notice">${robotIconSvg("agent-badge")}AI agent access enabled.</p>`
           : ""
       }
       ${
