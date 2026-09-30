@@ -227,6 +227,91 @@ describe("handlePasteView", () => {
     expect(html).toContain(">Unmark as analyzed<");
   });
 
+  test("shows who analyzed it and when, plus the agent read count and last access", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: true,
+      analyzedAt: "2026-01-02T10:30:00.000Z",
+      analyzedBy: "alice@<example>.com",
+      agentAccessCount: 3,
+      agentLastAccessAt: "2026-01-03T08:15:00.000Z",
+    }));
+
+    const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
+    const html = await res.text();
+
+    expect(html).toMatch(/<li id="analyzed-activity">/);
+    expect(html).toContain('<span id="analyzed-by">alice@&lt;example&gt;.com</span>');
+    expect(html).toContain('data-iso="2026-01-02T10:30:00.000Z"');
+    expect(html).toContain('id="agent-activity"');
+    expect(html).toContain("Read by AI agent 3 times");
+    expect(html).toContain('data-iso="2026-01-03T08:15:00.000Z"');
+  });
+
+  test("hides the analyzed line and omits the agent line when neither happened", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+      analyzedAt: null,
+      analyzedBy: null,
+      agentAccessCount: 0,
+      agentLastAccessAt: null,
+    }));
+
+    const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
+    const html = await res.text();
+
+    expect(html).toMatch(/<li id="analyzed-activity" hidden>/);
+    expect(html).not.toContain('id="agent-activity"');
+  });
+
+  test("says 'time' (singular) after a single agent read", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+      analyzedAt: null,
+      analyzedBy: null,
+      agentAccessCount: 1,
+      agentLastAccessAt: "2026-01-03T08:15:00.000Z",
+    }));
+
+    const res = await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET);
+    expect(await res.text()).toContain("Read by AI agent 1 time ·");
+  });
+
   test("renders a Delete button wired to the delete endpoint via the confirm dialog", async () => {
     getSessionEmailMock.mockImplementation(() => "admin@example.com");
     getPasteContentMock.mockImplementation(async () => "log line");

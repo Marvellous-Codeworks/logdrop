@@ -71,7 +71,14 @@ export function issueNumberFromUrl(issueUrl: string): string {
   return match ? `#${match[1]}` : issueUrl;
 }
 
-/** "2026-01-01T00:00:00.000Z" -> "2026-01-01 00:00 UTC" — a no-JS fallback, replaced client-side by localizeDatesScript(). */
+/** Robot icon marking AI agent access. `label` becomes its accessible name; omit it for a decorative icon. */
+export function robotIconSvg(className: string, label?: string): string {
+  const a11y = label ? `role="img" aria-label="${label}"` : `aria-hidden="true"`;
+  const title = label ? `<title>${label}</title>` : "";
+  return `<svg class="${className}" ${a11y} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${title}<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`;
+}
+
+/** "2026-01-01T00:00:00.000Z" ->"2026-01-01 00:00 UTC" — a no-JS fallback, replaced client-side by localizeDatesScript(). */
 export function formatDateFallback(iso: string): string {
   const match = iso.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
   return match ? `${match[1]} ${match[2]} UTC` : iso;

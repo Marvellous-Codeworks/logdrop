@@ -9,6 +9,7 @@ import {
   formatDateFallback,
   localizeDatesScript,
   themeToggleWireScript,
+  robotIconSvg,
 } from "./html-shell";
 
 function escapeHtml(input: string): string {
@@ -56,6 +57,24 @@ export async function handlePasteView(
             : ""
         }
       </p>
+      <ul class="paste-activity">
+        <li id="analyzed-activity"${meta.analyzed ? "" : " hidden"}>
+          <svg class="analyzed-badge" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>Analyzed<span id="analyzed-by-wrap"${meta.analyzedBy ? "" : " hidden"}> by <span id="analyzed-by">${escapeHtml(meta.analyzedBy ?? "")}</span></span><span id="analyzed-at-wrap"${meta.analyzedAt ? "" : " hidden"}> on <time id="analyzed-at" data-iso="${escapeHtml(meta.analyzedAt ?? "")}">${escapeHtml(meta.analyzedAt ? formatDateFallback(meta.analyzedAt) : "")}</time></span></span>
+        </li>
+        ${
+          meta.agentAccessCount > 0
+            ? `<li id="agent-activity">
+          ${robotIconSvg("agent-badge")}
+          <span>Read by AI agent ${meta.agentAccessCount} ${meta.agentAccessCount === 1 ? "time" : "times"}${
+            meta.agentLastAccessAt
+              ? ` · last <time data-iso="${escapeHtml(meta.agentLastAccessAt)}">${escapeHtml(formatDateFallback(meta.agentLastAccessAt))}</time>`
+              : ""
+          }</span>
+        </li>`
+            : ""
+        }
+      </ul>
       <div class="code-card">
         <div class="code-card__bar">
           <span class="code-card__label">${escapeHtml(slug)}</span>
@@ -136,6 +155,18 @@ export async function handlePasteView(
       if (action) action();
     });
 
+    function updateAnalyzedActivity(analyzed, by, at) {
+      document.getElementById("analyzed-activity").hidden = !analyzed;
+      document.getElementById("analyzed-by-wrap").hidden = !by;
+      document.getElementById("analyzed-by").textContent = by || "";
+      document.getElementById("analyzed-at-wrap").hidden = !at;
+      const atEl = document.getElementById("analyzed-at");
+      atEl.setAttribute("data-iso", at || "");
+      atEl.textContent = at
+        ? new Date(at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+        : "";
+    }
+
     const analyzedBtn = document.getElementById("analyzed-btn");
     analyzedBtn.addEventListener("click", async () => {
       const isAnalyzed = analyzedBtn.dataset.analyzed === "1";
@@ -152,8 +183,10 @@ export async function handlePasteView(
           return;
         }
         if (res.ok) {
+          const data = await res.json().catch(() => ({}));
           analyzedBtn.dataset.analyzed = next ? "1" : "0";
           analyzedBtn.textContent = next ? "Unmark as analyzed" : "Mark as analyzed";
+          updateAnalyzedActivity(next, data.analyzedBy || null, data.analyzedAt || null);
           return;
         }
         throw new Error("analyzed toggle failed");

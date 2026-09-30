@@ -58,6 +58,20 @@ async function findSlugBlob(slug: string, kind: BlobKind): Promise<ListedBlob | 
   return matches[0];
 }
 
+// Fill in fields missing from meta blobs written before they existed;
+// without this, old pastes come back with `undefined` despite the type
+// claiming `boolean` / `number` / `string | null`.
+function normalizeMeta(raw: PasteMeta): PasteMeta {
+  return {
+    ...raw,
+    analyzed: raw.analyzed === true,
+    analyzedAt: raw.analyzedAt ?? null,
+    analyzedBy: raw.analyzedBy ?? null,
+    agentAccessCount: typeof raw.agentAccessCount === "number" ? raw.agentAccessCount : 0,
+    agentLastAccessAt: raw.agentLastAccessAt ?? null,
+  };
+}
+
 export async function savePaste(input: {
   slug: string;
   content: string;
@@ -138,11 +152,7 @@ export async function getPasteMeta(slug: string): Promise<PasteMeta | null> {
     if (!blob) return null;
     const res = await fetch(blob.url);
     if (!res.ok) return null;
-    // Normalize `analyzed` for meta blobs written before this field existed;
-    // without this, old pastes come back with `analyzed: undefined` despite
-    // the type claiming `boolean`.
-    const raw = (await res.json()) as PasteMeta;
-    return { ...raw, analyzed: raw.analyzed === true };
+    return normalizeMeta(await res.json());
   } catch {
     return null;
   }
@@ -161,9 +171,7 @@ export async function listPastes(): Promise<PasteMeta[]> {
     if (blobKind(blob.pathname) !== "meta") continue;
     const res = await fetch(blob.url);
     if (!res.ok) continue;
-    // Same legacy-field normalization as getPasteMeta above.
-    const raw = (await res.json()) as PasteMeta;
-    metas.push({ ...raw, analyzed: raw.analyzed === true });
+    metas.push(normalizeMeta(await res.json()));
   }
   return metas.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }

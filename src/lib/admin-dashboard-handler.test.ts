@@ -213,6 +213,57 @@ describe("handleAdminDashboard", () => {
     expect(todoRowMatch?.[0]).not.toMatch(/analyzed-badge/);
   });
 
+  test("renders a robot badge next to the slug when an AI agent read the upload", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    const base = {
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 5,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+      analyzedAt: null,
+      analyzedBy: null,
+      agentLastAccessAt: null,
+    };
+    listPastesMock.mockImplementation(async () => [
+      { ...base, slug: "read123", agentAccessCount: 2, agentLastAccessAt: "2026-01-02T00:00:00.000Z" },
+      { ...base, slug: "unread456", agentAccessCount: 0 },
+    ]);
+
+    const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+    const html = await res.text();
+
+    const readRow = html.match(/<tr[^>]*data-search="read123[^>]*>[\s\S]*?<\/tr>/);
+    const unreadRow = html.match(/<tr[^>]*data-search="unread456[^>]*>[\s\S]*?<\/tr>/);
+    expect(readRow?.[0]).toMatch(/class="agent-badge" role="img" aria-label="Accessed by AI agent"/);
+    expect(unreadRow?.[0]).not.toMatch(/agent-badge/);
+  });
+
+  test("shows the AI agent access notice only when AGENT_API_TOKEN is set, never the token itself", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    listPastesMock.mockImplementation(async () => []);
+    const original = process.env.AGENT_API_TOKEN;
+    try {
+      process.env.AGENT_API_TOKEN = "super-secret-token";
+      let html = await (await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET)).text();
+      expect(html).toContain('class="agent-notice"');
+      expect(html).toContain("AI agent access enabled");
+      expect(html).not.toContain("super-secret-token");
+
+      delete process.env.AGENT_API_TOKEN;
+      html = await (await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET)).text();
+      expect(html).not.toContain("agent-notice");
+    } finally {
+      if (original === undefined) delete process.env.AGENT_API_TOKEN;
+      else process.env.AGENT_API_TOKEN = original;
+    }
+  });
+
   test("wires the bulk-copy button to flash a success state on click", async () => {
     getSessionEmailMock.mockImplementation(() => "admin@example.com");
     listPastesMock.mockImplementation(async () => [

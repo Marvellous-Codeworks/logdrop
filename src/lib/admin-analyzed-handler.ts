@@ -30,6 +30,8 @@ export async function handleAdminAnalyzed(request: Request, secret: string): Pro
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  await updatePasteMeta({ ...meta, analyzed });
-  return Response.json({ ok: true });
+  const analyzedAt = analyzed ? new Date().toISOString() : null;
+  const analyzedBy = analyzed ? email : null;
+  await updatePasteMeta({ ...meta, analyzed, analyzedAt, analyzedBy });
+  return Response.json({ ok: true, analyzedAt, analyzedBy });
 }

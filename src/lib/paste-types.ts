@@ -10,4 +10,8 @@ export interface PasteMeta {
   uploaderCountry: string | null;
   userAgent: string | null;
   analyzed: boolean;
+  analyzedAt: string | null; // ISO 8601, set when marked as analyzed
+  analyzedBy: string | null; // admin email that marked it as analyzed
+  agentAccessCount: number; // successful reads through the agent API
+  agentLastAccessAt: string | null; // ISO 8601
 }
