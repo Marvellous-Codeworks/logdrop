@@ -9,6 +9,7 @@ import {
   formatDateFallback,
   localizeDatesScript,
   themeToggleWireScript,
+  robotIconSvg,
 } from "./html-shell";
 
 function escapeHtml(input: string): string {
@@ -214,7 +215,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
           p.analyzed
             ? `<svg class="analyzed-badge" role="img" aria-label="Analyzed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`
             : ""
-        }<a href="/r/${escapeHtml(p.slug)}">${escapeHtml(p.slug)}</a></td>
+        }${p.agentAccessCount > 0 ? robotIconSvg("agent-badge", "Accessed by AI agent") : ""}<a href="/r/${escapeHtml(p.slug)}">${escapeHtml(p.slug)}</a></td>
         <td><time data-iso="${escapeHtml(p.createdAt)}">${escapeHtml(formatDateFallback(p.createdAt))}</time></td>
         <td><time data-iso="${escapeHtml(p.expiresAt)}">${escapeHtml(formatDateFallback(p.expiresAt))}</time></td>
         <td class="tabular">${escapeHtml(String(p.sizeBytes))}</td>
@@ -239,6 +240,11 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
     <main class="page page--wide">
       <h1>Admin</h1>
       <p class="lede">Signed in as ${escapeHtml(email)}.</p>
+      ${
+        process.env.AGENT_API_TOKEN
+          ? `<p class="agent-notice">${robotIconSvg("agent-notice__icon")}<span><strong>AI agent access enabled.</strong> <code>AGENT_API_TOKEN</code> is configured, so an AI agent holding the token can read uploads through <code>/api/agent/paste/&lt;slug&gt;</code>.</span></p>`
+          : ""
+      }
       ${
         pastes.length === 0
           ? `<p class="lede">No uploads yet.</p>`

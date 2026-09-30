@@ -627,6 +627,59 @@ table.pastes .col-label, table.pastes .col-slug { white-space: normal; }
   margin-right: var(--space-3xs);
 }
 
+.agent-badge {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-accent);
+  vertical-align: -0.15em;
+  margin-right: var(--space-3xs);
+}
+
+.agent-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  max-width: 48rem;
+  margin-block: 0 var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+}
+
+.agent-notice__icon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-accent);
+}
+
+.paste-activity {
+  margin-block: 0 var(--space-sm);
+  padding: 0;
+  list-style: none;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.paste-activity li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3xs);
+}
+
+.paste-activity [hidden],
+.paste-activity:not(:has(> li:not([hidden]))) {
+  display: none;
+}
+
+.paste-activity .analyzed-badge,
+.paste-activity .agent-badge {
+  margin-right: 0;
+}
+
 table.pastes th:first-child, table.pastes td:first-child { width: 1px; }
 
 form.inline { display: inline; margin: 0; }

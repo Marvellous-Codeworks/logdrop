@@ -124,4 +124,65 @@ describe("handleAdminAnalyzed", () => {
       expect.objectContaining({ slug: "abc123", analyzed: true }),
     );
   });
+
+  test("records who marked it and when, and returns them", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 10,
+      originalFilename: null,
+      label: null,
+      issueUrl: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+      analyzedAt: null,
+      analyzedBy: null,
+      agentAccessCount: 0,
+      agentLastAccessAt: null,
+    }));
+
+    const before = Date.now();
+    const res = await handleAdminAnalyzed(analyzedRequest({ slug: "abc123", analyzed: true }), SECRET);
+    const json = (await res.json()) as { analyzedAt: string; analyzedBy: string };
+
+    const written = updatePasteMetaMock.mock.calls[0][0] as { analyzedAt: string; analyzedBy: string };
+    expect(written.analyzedBy).toBe("admin@example.com");
+    expect(new Date(written.analyzedAt).getTime()).toBeGreaterThanOrEqual(before);
+    expect(json.analyzedBy).toBe("admin@example.com");
+    expect(json.analyzedAt).toBe(written.analyzedAt);
+  });
+
+  test("clears who/when on unmark", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteMetaMock.mockImplementation(async () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 10,
+      originalFilename: null,
+      label: null,
+      issueUrl: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: true,
+      analyzedAt: "2026-01-02T00:00:00.000Z",
+      analyzedBy: "other@example.com",
+      agentAccessCount: 0,
+      agentLastAccessAt: null,
+    }));
+
+    const res = await handleAdminAnalyzed(analyzedRequest({ slug: "abc123", analyzed: false }), SECRET);
+    const json = (await res.json()) as { analyzedAt: unknown; analyzedBy: unknown };
+
+    expect(updatePasteMetaMock).toHaveBeenCalledWith(
+      expect.objectContaining({ analyzed: false, analyzedAt: null, analyzedBy: null }),
+    );
+    expect(json.analyzedAt).toBeNull();
+    expect(json.analyzedBy).toBeNull();
+  });
 });

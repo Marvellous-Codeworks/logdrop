@@ -113,6 +113,10 @@ function baseMeta(overrides: Partial<Parameters<typeof savePaste>[0]["meta"]> = 
     uploaderCountry: null,
     userAgent: null,
     analyzed: false,
+    analyzedAt: null,
+    analyzedBy: null,
+    agentAccessCount: 0,
+    agentLastAccessAt: null,
     ...overrides,
   };
 }
@@ -312,5 +316,29 @@ describe("storage", () => {
     const pastes = await listPastes();
     const legacy = pastes.find((p) => p.slug === "legacy");
     expect(legacy?.analyzed).toBe(false);
+  });
+
+  test("normalizes missing analyzed-audit and agent-access fields on legacy pastes", async () => {
+    const legacyMeta = {
+      slug: "legacy2",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 3,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: true,
+      // analyzedAt / analyzedBy / agentAccessCount / agentLastAccessAt omitted.
+    };
+    blobStore.set("uploads/legacy2/meta-legacy.json", JSON.stringify(legacyMeta));
+    blobStore.set("uploads/legacy2/content-legacy", "old content");
+
+    const expected = { analyzedAt: null, analyzedBy: null, agentAccessCount: 0, agentLastAccessAt: null };
+    expect(await getPasteMeta("legacy2")).toMatchObject({ analyzed: true, ...expected });
+    const legacy = (await listPastes()).find((p) => p.slug === "legacy2");
+    expect(legacy).toMatchObject({ analyzed: true, ...expected });
   });
 });
