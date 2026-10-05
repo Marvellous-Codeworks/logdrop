@@ -1,5 +1,5 @@
 import { describe, test, expect, mock, afterEach } from "bun:test";
-import { sendMagicLinkEmail } from "./mail";
+import { magicLinkEmailHtml, magicLinkEmailText, sendMagicLinkEmail } from "./mail";
 
 describe("sendMagicLinkEmail", () => {
   const originalFetch = global.fetch;
@@ -43,6 +43,7 @@ describe("sendMagicLinkEmail", () => {
     expect(capturedBody?.to).toEqual(["a@b.com"]);
     expect(capturedBody?.from).toBe("logdrop <noreply@example.com>");
     expect(String(capturedBody?.html)).toContain("https://x/y");
+    expect(String(capturedBody?.text)).toContain("https://x/y");
   });
 
   test("throws when Resend responds with a non-ok status", async () => {
@@ -53,5 +54,37 @@ describe("sendMagicLinkEmail", () => {
     await expect(
       sendMagicLinkEmail({ to: "a@b.com", magicLinkUrl: "https://x/y" }),
     ).rejects.toThrow("Resend send failed: 500");
+  });
+});
+
+describe("magicLinkEmailHtml", () => {
+  const url = "https://logdrop.example.com/admin/verify?token=abc&next=%2Fadmin";
+
+  test("renders the branded header with the logo served from the link's origin", () => {
+    const html = magicLinkEmailHtml(url);
+    expect(html).toContain('src="https://logdrop.example.com/logo-email.png"');
+    expect(html).toContain(">logdrop</td>");
+    expect(html).toContain("Admin sign-in");
+  });
+
+  test("includes the magic link, HTML-escaped, as the CTA and plain fallback", () => {
+    const html = magicLinkEmailHtml(url);
+    const escaped = "https://logdrop.example.com/admin/verify?token=abc&amp;next=%2Fadmin";
+    expect(html.split(`href="${escaped}"`).length - 1).toBe(2);
+    expect(html).toContain(`>${escaped}</a>`);
+    expect(html).not.toContain("token=abc&next");
+  });
+
+  test("escapes markup injected through the link", () => {
+    const html = magicLinkEmailHtml('https://x.example/verify?t="><script>alert(1)</script>');
+    expect(html).not.toContain("<script>");
+  });
+});
+
+describe("magicLinkEmailText", () => {
+  test("contains the raw magic link and the expiry notice", () => {
+    const text = magicLinkEmailText("https://x/y?a=1&b=2");
+    expect(text).toContain("https://x/y?a=1&b=2");
+    expect(text).toContain("expires in 15 minutes");
   });
 });
