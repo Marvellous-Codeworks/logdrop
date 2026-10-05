@@ -16,7 +16,25 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 - Mark an upload as **analyzed** once triaged — from its own page (single-click Mark/Unmark, no confirmation) or in bulk from the dashboard toolbar. A read-only checkmark badge next to the slug shows analyzed uploads at a glance in the dashboard table; a toolbar toggle hides/shows them. The upload's own page shows who marked it as analyzed and when.
 - Delete an upload, single or in bulk, from the dashboard, or straight from the upload's own page — always through a custom on-screen confirmation modal (no native browser `confirm()`).
 - A one-click back-to-admin button on every upload's page, and green flash + checkmark feedback on every copy/mark action.
-- Optional `GET /api/agent/paste/<slug>` endpoint so your own AI agent tooling can read a paste's content from a plain share link without an admin login. Each admin generates a personal agent token from the dashboard ("AI agent access": generate, regenerate, revoke). The token is shown once and stored only as a hash; send it as `Authorization: Bearer <token>`. It stops working as soon as its owner is removed from `ADMIN_EMAILS`. Every agent read is recorded, so the dashboard table shows a robot badge on uploads an agent has read, and the upload's own page shows how many times, when last and whose token was used.
+- Branded magic-link login email (logo, `logdrop` wordmark and "Admin sign-in" title, as on the site), with a plain-text part for clients without HTML. The logo is `public/logo-email.png`, loaded from `SITE_URL`.
+- Optional AI agent access: `GET /api/agent/paste/<slug>` lets your own AI agent tooling read a paste's content from a plain share link without an admin login, using a **personal agent token** (see [AI agent access](#ai-agent-access)). Every agent read is recorded, so the dashboard table shows a robot badge on uploads an agent has read, and the upload's own page shows how many times, when last and whose token was used.
+
+## AI agent access
+
+Each admin manages their own token from the dashboard: under "Signed in as", open **AI agent access → Manage your token** to generate, regenerate or revoke it. No env var or redeploy is needed.
+
+- The token (`ld_agent_…`) is shown **once**, right after it's generated. Copy it into your agent's config; if you lose it, regenerate it (the old one stops working immediately).
+- It's stored only as a SHA-256 hash in the Blob store, next to the uploads.
+- Reads are attributed to the token's owner, and the token stops working as soon as its owner is removed from `ADMIN_EMAILS`.
+- The dashboard shows when your token was created and last used.
+
+```bash
+curl -H "Authorization: Bearer ld_agent_…" https://logdrop.your-domain.example/api/agent/paste/<slug>
+```
+
+The response is JSON with `slug`, `content` and `meta`; uploader IP, country, user agent, and which admins analyzed or read the upload are redacted.
+
+**Migrating from `AGENT_API_TOKEN`:** the old instance-wide token still works but is deprecated (the dashboard flags it). Have each admin generate a personal token, move your agents to it, then delete `AGENT_API_TOKEN` from every Vercel environment and redeploy.
 
 ## License
 
@@ -24,7 +42,7 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 
 ## Credits
 
-The favicon (`public/favicon.svg`) uses the "droplet" icon from [Lucide](https://lucide.dev) (ISC license).
+The favicon (`public/favicon.svg`) and the email logo rendered from it (`public/logo-email.png`) use the "droplet" icon from [Lucide](https://lucide.dev) (ISC license).
 
 ## Local development
 
@@ -89,7 +107,7 @@ In the Vercel project → **Settings** → **Environment Variables**, set everyt
 | `RETENTION_DAYS`, `MAX_UPLOAD_BYTES` | defaults in `.env.example` are fine to start |
 | `VITE_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | step 4 |
 | `CRON_SECRET` | generated in step 5 |
-| `AGENT_API_TOKEN` | optional, **deprecated** — legacy instance-wide agent token. Not needed for agent access: each admin can generate a personal token from the dashboard. Keep it only while existing agents still use it (see `.env.example`); if you do, enable it for every Vercel environment where those agents run, then redeploy |
+| `AGENT_API_TOKEN` | optional, **deprecated**: not needed, since each admin generates a personal token from the dashboard (see [AI agent access](#ai-agent-access)). Keep it only while existing agents still use it; if you do, enable it for every Vercel environment where those agents run, then redeploy |
 
 `BLOB_READ_WRITE_TOKEN` and `EDGE_CONFIG` should already be present from steps 2–3 — double check they're listed before moving on.
 
