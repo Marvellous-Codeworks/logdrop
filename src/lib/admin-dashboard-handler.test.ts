@@ -380,7 +380,10 @@ describe("handleAdminDashboard", () => {
       const html = await (await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET)).text();
 
       expect(getAgentTokenRecordForMock).toHaveBeenCalledWith("alice@example.com");
-      expect(html).toContain("AI agent access</h2>");
+      expect(html).toContain("AI agent access not set up.");
+      expect(html).not.toContain("agent-notice");
+      // Sits right under "Signed in as", as a show/hide block.
+      expect(html).toMatch(/Signed in as alice@example\.com\.<\/p>\s*<details class="agent-access" id="agent-access">/);
       expect(html).toContain('id="agent-token-generate">Generate token</button>');
       expect(html).not.toContain('id="agent-token-revoke"');
     });

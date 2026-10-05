@@ -1,6 +1,6 @@
 import type { AgentTokenRecord } from "./agent-tokens";
 import { maskAgentToken } from "./agent-tokens";
-import { formatDateFallback } from "./html-shell";
+import { formatDateFallback, robotIconSvg } from "./html-shell";
 
 function escapeHtml(input: string): string {
   return input
@@ -15,34 +15,41 @@ function timeHtml(iso: string): string {
 }
 
 /**
- * "AI agent access" section of the dashboard: the signed-in admin's own
- * token (masked), plus generate / regenerate / revoke. The plaintext token
- * is only shown in the reveal dialog right after generation.
+ * "AI agent access" block of the dashboard, right under "Signed in as": a
+ * show/hide line whose summary doubles as the agent access notice, revealing
+ * the signed-in admin's own token (masked) plus generate / regenerate /
+ * revoke. The plaintext token is only shown in the reveal dialog right after
+ * generation.
  */
 export function agentTokenSectionHtml(record: AgentTokenRecord | null, legacyTokenSet: boolean): string {
+  const enabled = record !== null || legacyTokenSet;
   const status = record
     ? `<p class="lede">Your token: <span class="mono">${escapeHtml(maskAgentToken(record.hint))}</span> · created ${timeHtml(record.createdAt)} · ${
         record.lastUsedAt ? `last used ${timeHtml(record.lastUsedAt)}` : "never used"
       }</p>
-      <div class="table-toolbar__actions">
+      <div class="agent-access__actions">
         <button type="button" class="btn btn--secondary" id="agent-token-generate">Regenerate</button>
         <button type="button" class="btn btn--danger" id="agent-token-revoke">Revoke</button>
       </div>`
     : `<p class="lede">You don't have an agent token yet.</p>
-      <div class="table-toolbar__actions">
+      <div class="agent-access__actions">
         <button type="button" class="btn btn--primary" id="agent-token-generate">Generate token</button>
       </div>`;
 
-  return `<section class="agent-access" id="agent-access" style="margin-top: var(--space-xl);">
-      <h2>AI agent access</h2>
-      <p class="lede">A personal token lets your AI agent read uploads through <span class="mono">GET /api/agent/paste/&lt;slug&gt;</span> with <span class="mono">Authorization: Bearer &lt;token&gt;</span>. Reads are attributed to you. The token stops working if you're removed from the admins.</p>
-      ${status}
-      ${
-        legacyTokenSet
-          ? `<p class="lede" style="font-size: var(--text-sm);">The instance-wide <span class="mono">AGENT_API_TOKEN</span> is also set. It's deprecated: move agents to personal tokens, then remove it.</p>`
-          : ""
-      }
-    </section>
+  return `<details class="agent-access" id="agent-access">
+      <summary class="lede${enabled ? " agent-notice" : ""}">${robotIconSvg("agent-badge")}${
+        enabled ? "AI agent access enabled." : "AI agent access not set up."
+      } <span class="agent-access__toggle">Manage your token</span></summary>
+      <div class="agent-access__body">
+        <p class="lede">A personal token lets your AI agent read uploads through <span class="mono">GET /api/agent/paste/&lt;slug&gt;</span> with <span class="mono">Authorization: Bearer &lt;token&gt;</span>. Reads are attributed to you. The token stops working if you're removed from the admins.</p>
+        ${status}
+        ${
+          legacyTokenSet
+            ? `<p class="lede agent-access__legacy">The instance-wide <span class="mono">AGENT_API_TOKEN</span> is also set. It's deprecated: move agents to personal tokens, then remove it.</p>`
+            : ""
+        }
+      </div>
+    </details>
     <dialog id="agent-token-dialog" class="result-dialog">
       <p class="result-dialog__kicker">Agent token</p>
       <h2>Copy your token now</h2>
@@ -80,6 +87,14 @@ export function agentTokenScript(hasToken: boolean): string {
       var confirmOk = document.getElementById("agent-token-confirm-ok");
       var confirmCancel = document.getElementById("agent-token-confirm-cancel");
       var pendingAction = null;
+      var details = document.getElementById("agent-access");
+
+      // Reload to show the new state, reopening the block afterwards.
+      function reloadOpen() {
+        window.location.hash = "agent-access";
+        window.location.reload();
+      }
+      if (details && window.location.hash === "#agent-access") details.open = true;
 
       function post(action) {
         return fetch("/api/admin/agent-token", {
@@ -105,7 +120,7 @@ export function agentTokenScript(hasToken: boolean): string {
 
       function revoke() {
         revokeBtn.disabled = true;
-        post("revoke").then(function () { window.location.reload(); }).catch(function () {
+        post("revoke").then(reloadOpen).catch(function () {
           revokeBtn.disabled = false;
           revokeBtn.textContent = "Failed, try again";
         });
@@ -148,7 +163,7 @@ export function agentTokenScript(hasToken: boolean): string {
       // reload so the section shows the new masked token.
       dialog.addEventListener("close", function () {
         valueEl.textContent = "";
-        window.location.reload();
+        reloadOpen();
       });
       doneBtn.addEventListener("click", function () { dialog.close(); });
     })();

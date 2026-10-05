@@ -635,6 +635,29 @@ table.pastes .col-label, table.pastes .col-slug { white-space: normal; }
   margin-right: var(--space-3xs);
 }
 
+/* Show/hide "AI agent access" line under "Signed in as" on the dashboard. */
+.agent-access { margin-block: 0 var(--space-md); }
+.agent-access > summary {
+  cursor: pointer;
+  list-style: none;
+  width: fit-content;
+}
+.agent-access > summary::-webkit-details-marker { display: none; }
+.agent-access__toggle { color: var(--color-accent); }
+.agent-access__toggle::after { content: " ▸"; }
+.agent-access[open] .agent-access__toggle::after { content: " ▾"; }
+.agent-access > summary:hover .agent-access__toggle { text-decoration: underline; }
+.agent-access__body {
+  max-width: 48rem;
+  margin-top: var(--space-xs);
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--color-rule);
+  display: grid;
+  gap: var(--space-xs);
+}
+.agent-access__actions { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.agent-access__legacy { margin-top: var(--space-xs); }
+
 .paste-activity {
   margin-block: 0 var(--space-sm);
   padding: 0;

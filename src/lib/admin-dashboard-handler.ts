@@ -253,11 +253,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
     <main class="page page--wide">
       <h1>Admin</h1>
       <p class="lede">Signed in as ${escapeHtml(email)}.</p>
-      ${
-        agentToken || legacyAgentToken
-          ? `<p class="lede agent-notice">${robotIconSvg("agent-badge")}AI agent access enabled.</p>`
-          : ""
-      }
+      ${agentTokenSectionHtml(agentToken, legacyAgentToken)}
       ${
         pastes.length === 0
           ? `<p class="lede">No uploads yet.</p>`
@@ -282,7 +278,6 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
         </div>
       </form>`
       }
-      ${agentTokenSectionHtml(agentToken, legacyAgentToken)}
     </main>
     ${footerHtml()}
   </div>
