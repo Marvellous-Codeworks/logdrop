@@ -1,4 +1,5 @@
 import { getAdminEmails } from "./admin-allowlist";
+import { INSTANCE_TOKEN_ACTOR } from "./agent-tokens";
 import { getSessionEmail } from "./session";
 import { getPasteContent, getPasteMeta } from "./storage";
 import {
@@ -69,6 +70,10 @@ export async function handlePasteView(
           <span>Read by AI agent ${meta.agentAccessCount} ${meta.agentAccessCount === 1 ? "time" : "times"}${
             meta.agentLastAccessAt
               ? ` · last <time data-iso="${escapeHtml(meta.agentLastAccessAt)}">${escapeHtml(formatDateFallback(meta.agentLastAccessAt))}</time>`
+              : ""
+          }${
+            meta.agentLastAccessBy
+              ? ` by ${meta.agentLastAccessBy === INSTANCE_TOKEN_ACTOR ? "the instance token" : escapeHtml(meta.agentLastAccessBy)}`
               : ""
           }</span>
         </li>`

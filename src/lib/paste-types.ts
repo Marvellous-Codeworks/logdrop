@@ -14,4 +14,5 @@ export interface PasteMeta {
   analyzedBy: string | null; // admin email that marked it as analyzed
   agentAccessCount: number; // successful reads through the agent API
   agentLastAccessAt: string | null; // ISO 8601
+  agentLastAccessBy: string | null; // admin email owning the token, or "instance" for the legacy AGENT_API_TOKEN
 }

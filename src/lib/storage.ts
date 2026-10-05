@@ -69,6 +69,7 @@ function normalizeMeta(raw: PasteMeta): PasteMeta {
     analyzedBy: raw.analyzedBy ?? null,
     agentAccessCount: typeof raw.agentAccessCount === "number" ? raw.agentAccessCount : 0,
     agentLastAccessAt: raw.agentLastAccessAt ?? null,
+    agentLastAccessBy: raw.agentLastAccessBy ?? null,
   };
 }
 

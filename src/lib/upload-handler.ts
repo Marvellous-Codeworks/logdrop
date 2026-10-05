@@ -81,6 +81,7 @@ export async function handleUpload(request: Request): Promise<Response> {
       analyzedBy: null,
       agentAccessCount: 0,
       agentLastAccessAt: null,
+      agentLastAccessBy: null,
     },
   });
 
