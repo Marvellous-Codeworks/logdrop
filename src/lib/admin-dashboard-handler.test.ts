@@ -37,6 +37,11 @@ mock.module("./storage", () => ({
   deleteExpiredPastes: realDeleteExpiredPastes,
 }));
 
+const realAgentTokens = { ...(await import("./agent-tokens")) };
+type TokenRecord = { email: string; createdAt: string; lastUsedAt: string | null; hint: string };
+const getAgentTokenRecordForMock = mock(async (_email: string) => null as TokenRecord | null);
+mock.module("./agent-tokens", () => ({ ...realAgentTokens, getAgentTokenRecordFor: getAgentTokenRecordForMock }));
+
 const { handleAdminDashboard } = await import("./admin-dashboard-handler");
 
 const SECRET = "test-secret";
@@ -48,6 +53,7 @@ describe("handleAdminDashboard", () => {
   });
 
   afterAll(() => {
+    mock.module("./agent-tokens", () => realAgentTokens);
     mock.module("./session", () => ({
       SESSION_COOKIE_NAME: realSessionCookieName,
       getSessionEmail: realGetSessionEmail,
@@ -361,5 +367,79 @@ describe("handleAdminDashboard", () => {
     // Same flash-success feedback as the bulk-copy button, once all requests settle.
     expect(html).toContain("Promise.all(requests)");
     expect(html).toContain('classList.add("flash-success")');
+  });
+
+  describe("AI agent access section", () => {
+    afterEach(() => {
+      getAgentTokenRecordForMock.mockImplementation(async () => null);
+    });
+
+    test("offers to generate a token when the admin has none", async () => {
+      getSessionEmailMock.mockImplementation(() => "alice@example.com");
+      listPastesMock.mockImplementation(async () => []);
+      const html = await (await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET)).text();
+
+      expect(getAgentTokenRecordForMock).toHaveBeenCalledWith("alice@example.com");
+      expect(html).toContain("AI agent access</h2>");
+      expect(html).toContain('id="agent-token-generate">Generate token</button>');
+      expect(html).not.toContain('id="agent-token-revoke"');
+    });
+
+    test("shows the admin's own token masked, with regenerate and revoke, and the enabled notice", async () => {
+      getSessionEmailMock.mockImplementation(() => "alice@example.com");
+      listPastesMock.mockImplementation(async () => []);
+      getAgentTokenRecordForMock.mockImplementation(async () => ({
+        email: "alice@example.com",
+        createdAt: "2026-10-01T00:00:00.000Z",
+        lastUsedAt: "2026-10-02T00:00:00.000Z",
+        hint: "a1b2",
+      }));
+      const original = process.env.AGENT_API_TOKEN;
+      delete process.env.AGENT_API_TOKEN;
+      try {
+        const html = await (await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET)).text();
+
+        expect(html).toContain("ld_agent_…a1b2");
+        expect(html).toContain("last used");
+        expect(html).toContain('id="agent-token-generate">Regenerate</button>');
+        expect(html).toContain('id="agent-token-revoke"');
+        expect(html).toContain("AI agent access enabled");
+        expect(html).not.toContain("instance-wide");
+      } finally {
+        if (original !== undefined) process.env.AGENT_API_TOKEN = original;
+      }
+    });
+
+    test("flags the deprecated instance-wide token when it is set", async () => {
+      getSessionEmailMock.mockImplementation(() => "alice@example.com");
+      listPastesMock.mockImplementation(async () => []);
+      const original = process.env.AGENT_API_TOKEN;
+      process.env.AGENT_API_TOKEN = "super-secret-token";
+      try {
+        const html = await (await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET)).text();
+        expect(html).toContain("deprecated");
+        expect(html).not.toContain("super-secret-token");
+      } finally {
+        if (original === undefined) delete process.env.AGENT_API_TOKEN;
+        else process.env.AGENT_API_TOKEN = original;
+      }
+    });
+
+    test("still renders the dashboard when loading the token fails", async () => {
+      getSessionEmailMock.mockImplementation(() => "alice@example.com");
+      listPastesMock.mockImplementation(async () => []);
+      getAgentTokenRecordForMock.mockImplementation(async () => {
+        throw new Error("blob down");
+      });
+      const consoleError = console.error;
+      console.error = () => {};
+      try {
+        const res = await handleAdminDashboard(new Request("https://logdrop.example/admin"), SECRET);
+        expect(res.status).toBe(200);
+        expect(await res.text()).toContain("Generate token");
+      } finally {
+        console.error = consoleError;
+      }
+    });
   });
 });

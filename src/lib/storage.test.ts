@@ -117,6 +117,7 @@ function baseMeta(overrides: Partial<Parameters<typeof savePaste>[0]["meta"]> = 
     analyzedBy: null,
     agentAccessCount: 0,
     agentLastAccessAt: null,
+    agentLastAccessBy: null,
     ...overrides,
   };
 }
@@ -331,12 +332,18 @@ describe("storage", () => {
       uploaderCountry: null,
       userAgent: null,
       analyzed: true,
-      // analyzedAt / analyzedBy / agentAccessCount / agentLastAccessAt omitted.
+      // analyzedAt / analyzedBy / agentAccessCount / agentLastAccessAt / agentLastAccessBy omitted.
     };
     blobStore.set("uploads/legacy2/meta-legacy.json", JSON.stringify(legacyMeta));
     blobStore.set("uploads/legacy2/content-legacy", "old content");
 
-    const expected = { analyzedAt: null, analyzedBy: null, agentAccessCount: 0, agentLastAccessAt: null };
+    const expected = {
+      analyzedAt: null,
+      analyzedBy: null,
+      agentAccessCount: 0,
+      agentLastAccessAt: null,
+      agentLastAccessBy: null,
+    };
     expect(await getPasteMeta("legacy2")).toMatchObject({ analyzed: true, ...expected });
     const legacy = (await listPastes()).find((p) => p.slug === "legacy2");
     expect(legacy).toMatchObject({ analyzed: true, ...expected });

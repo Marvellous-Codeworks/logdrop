@@ -1,4 +1,6 @@
 import { getAdminEmails } from "./admin-allowlist";
+import { agentTokenScript, agentTokenSectionHtml } from "./admin-agent-token-section";
+import { getAgentTokenRecordFor, type AgentTokenRecord } from "./agent-tokens";
 import { getSessionEmail } from "./session";
 import { listPastes } from "./storage";
 import {
@@ -198,6 +200,16 @@ function adminBulkActionsScript(): string {
   </script>`;
 }
 
+// A Blob hiccup reading the admin's token must not take the whole dashboard down.
+async function loadAgentToken(email: string): Promise<AgentTokenRecord | null> {
+  try {
+    return await getAgentTokenRecordFor(email);
+  } catch (err) {
+    console.error("Failed to load agent token", err);
+    return null;
+  }
+}
+
 export async function handleAdminDashboard(request: Request, secret: string): Promise<Response> {
   const url = new URL(request.url);
   const email = getSessionEmail(request, secret, getAdminEmails());
@@ -205,7 +217,8 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
     return Response.redirect(new URL("/admin/login?next=/admin", url.origin).toString(), 302);
   }
 
-  const pastes = await listPastes();
+  const [pastes, agentToken] = await Promise.all([listPastes(), loadAgentToken(email)]);
+  const legacyAgentToken = Boolean(process.env.AGENT_API_TOKEN);
   const rows = pastes
     .map((p) => {
       const searchText = [p.slug, p.label ?? "", p.uploaderCountry ?? ""].join(" ");
@@ -241,7 +254,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
       <h1>Admin</h1>
       <p class="lede">Signed in as ${escapeHtml(email)}.</p>
       ${
-        process.env.AGENT_API_TOKEN
+        agentToken || legacyAgentToken
           ? `<p class="lede agent-notice">${robotIconSvg("agent-badge")}AI agent access enabled.</p>`
           : ""
       }
@@ -269,6 +282,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
         </div>
       </form>`
       }
+      ${agentTokenSectionHtml(agentToken, legacyAgentToken)}
     </main>
     ${footerHtml()}
   </div>
@@ -288,6 +302,7 @@ export async function handleAdminDashboard(request: Request, secret: string): Pr
   ${localizeDatesScript()}
   ${themeToggleWireScript()}
   ${pastes.length > 0 ? adminBulkActionsScript() : ""}
+  ${agentTokenScript(agentToken !== null)}
 </body>
 </html>`;
 

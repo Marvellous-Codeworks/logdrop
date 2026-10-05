@@ -259,6 +259,40 @@ describe("handlePasteView", () => {
     expect(html).toContain('data-iso="2026-01-03T08:15:00.000Z"');
   });
 
+  test("says whose token performed the last agent read, escaping it", async () => {
+    getSessionEmailMock.mockImplementation(() => "admin@example.com");
+    getPasteContentMock.mockImplementation(async () => "log line");
+    const meta = {
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-08T00:00:00.000Z",
+      sizeBytes: 8,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+      analyzedAt: null,
+      analyzedBy: null,
+      agentAccessCount: 1,
+      agentLastAccessAt: "2026-01-03T08:15:00.000Z",
+    };
+
+    getPasteMetaMock.mockImplementation(async () => ({ ...meta, agentLastAccessBy: "bob@<example>.com" }));
+    let html = await (await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET)).text();
+    expect(html).toContain("</time> by bob@&lt;example&gt;.com</span>");
+
+    getPasteMetaMock.mockImplementation(async () => ({ ...meta, agentLastAccessBy: "instance" }));
+    html = await (await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET)).text();
+    expect(html).toContain("</time> by the instance token</span>");
+
+    getPasteMetaMock.mockImplementation(async () => ({ ...meta, agentLastAccessBy: null }));
+    html = await (await handlePasteView(new Request("https://logdrop.example/r/abc123"), "abc123", SECRET)).text();
+    expect(html).not.toMatch(/<\/time> by /);
+  });
+
   test("hides the analyzed line and omits the agent line when neither happened", async () => {
     getSessionEmailMock.mockImplementation(() => "admin@example.com");
     getPasteContentMock.mockImplementation(async () => "log line");

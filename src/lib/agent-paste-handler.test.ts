@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, afterAll } from "bun:test";
+import { describe, test, expect, mock, afterAll, beforeEach } from "bun:test";
 
 const {
   savePaste: realSavePaste,
@@ -23,6 +23,21 @@ mock.module("./storage", () => ({
   deleteExpiredPastes: realDeleteExpiredPastes,
 }));
 
+const realAgentTokens = await import("./agent-tokens");
+const {
+  findAgentToken: realFindAgentToken,
+  touchAgentToken: realTouchAgentToken,
+} = realAgentTokens;
+const realAgentTokenExports = { ...realAgentTokens };
+type TokenRecord = { email: string; createdAt: string; lastUsedAt: string | null; hint: string };
+const findAgentTokenMock = mock(async (_token: string) => null as TokenRecord | null);
+const touchAgentTokenMock = mock(async (_token: string, _at: Date) => undefined);
+mock.module("./agent-tokens", () => ({
+  ...realAgentTokenExports,
+  findAgentToken: findAgentTokenMock,
+  touchAgentToken: touchAgentTokenMock,
+}));
+
 const { handleAgentPasteRead } = await import("./agent-paste-handler");
 
 const SECRET = "agent-secret";
@@ -35,6 +50,11 @@ function agentRequest(auth?: string): Request {
 
 describe("handleAgentPasteRead", () => {
   afterAll(() => {
+    mock.module("./agent-tokens", () => ({
+      ...realAgentTokenExports,
+      findAgentToken: realFindAgentToken,
+      touchAgentToken: realTouchAgentToken,
+    }));
     mock.module("./storage", () => ({
       savePaste: realSavePaste,
       getPasteContent: realGetPasteContent,
@@ -207,5 +227,100 @@ describe("handleAgentPasteRead", () => {
     const res = await handleAgentPasteRead(agentRequest(`Bearer ${SECRET}`), "abc123", SECRET);
 
     expect(res.status).toBe(404);
+  });
+
+  describe("per-admin tokens", () => {
+    const PERSONAL = "ld_agent_alice-personal-token";
+    const liveMeta = () => ({
+      slug: "abc123",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      sizeBytes: 3,
+      originalFilename: null,
+      issueUrl: null,
+      label: null,
+      uploaderIp: null,
+      uploaderCountry: null,
+      userAgent: null,
+      analyzed: false,
+      analyzedAt: null,
+      analyzedBy: null,
+      agentAccessCount: 0,
+      agentLastAccessAt: null,
+      agentLastAccessBy: null,
+    });
+    const originalAdmins = process.env.ADMIN_EMAILS;
+
+    beforeEach(() => {
+      process.env.ADMIN_EMAILS = "alice@example.com, bob@example.com";
+      updatePasteMetaMock.mockClear();
+      updatePasteMetaMock.mockImplementation(async () => undefined);
+      touchAgentTokenMock.mockClear();
+      touchAgentTokenMock.mockImplementation(async () => undefined);
+      findAgentTokenMock.mockImplementation(async (token: string) =>
+        token === PERSONAL
+          ? { email: "alice@example.com", createdAt: "2026-01-01T00:00:00.000Z", lastUsedAt: null, hint: "oken" }
+          : null,
+      );
+      getPasteContentMock.mockImplementation(async () => "log");
+      getPasteMetaMock.mockImplementation(async () => liveMeta());
+    });
+
+    afterAll(() => {
+      if (originalAdmins === undefined) delete process.env.ADMIN_EMAILS;
+      else process.env.ADMIN_EMAILS = originalAdmins;
+    });
+
+    test("accepts a personal token, attributes the read to its owner and redacts it", async () => {
+      const res = await handleAgentPasteRead(agentRequest(`Bearer ${PERSONAL}`), "abc123", undefined);
+      const json = (await res.json()) as { meta: Record<string, unknown> };
+
+      expect(res.status).toBe(200);
+      const written = updatePasteMetaMock.mock.calls[0][0] as Record<string, unknown>;
+      expect(written.agentLastAccessBy).toBe("alice@example.com");
+      expect(json.meta.agentLastAccessBy).toBeUndefined();
+      expect(touchAgentTokenMock).toHaveBeenCalledTimes(1);
+      expect(touchAgentTokenMock.mock.calls[0][0]).toBe(PERSONAL);
+    });
+
+    test("rejects a personal token whose owner is no longer an admin", async () => {
+      process.env.ADMIN_EMAILS = "bob@example.com";
+      const res = await handleAgentPasteRead(agentRequest(`Bearer ${PERSONAL}`), "abc123", undefined);
+      expect(res.status).toBe(401);
+      expect(updatePasteMetaMock).not.toHaveBeenCalled();
+    });
+
+    test("rejects unknown and revoked tokens", async () => {
+      const res = await handleAgentPasteRead(agentRequest("Bearer ld_agent_revoked"), "abc123", SECRET);
+      expect(res.status).toBe(401);
+    });
+
+    test("works without AGENT_API_TOKEN, which then accepts nothing else", async () => {
+      expect((await handleAgentPasteRead(agentRequest(`Bearer ${SECRET}`), "abc123", undefined)).status).toBe(401);
+      expect((await handleAgentPasteRead(agentRequest("Bearer "), "abc123", undefined)).status).toBe(401);
+    });
+
+    test("attributes legacy AGENT_API_TOKEN reads to the instance token", async () => {
+      const res = await handleAgentPasteRead(agentRequest(`Bearer ${SECRET}`), "abc123", SECRET);
+
+      expect(res.status).toBe(200);
+      const written = updatePasteMetaMock.mock.calls[0][0] as Record<string, unknown>;
+      expect(written.agentLastAccessBy).toBe("instance");
+      expect(touchAgentTokenMock).not.toHaveBeenCalled();
+    });
+
+    test("still returns the log when recording the token's last use fails", async () => {
+      touchAgentTokenMock.mockImplementation(async () => {
+        throw new Error("blob write failed");
+      });
+      const consoleError = console.error;
+      console.error = () => {};
+      try {
+        const res = await handleAgentPasteRead(agentRequest(`Bearer ${PERSONAL}`), "abc123", undefined);
+        expect(res.status).toBe(200);
+      } finally {
+        console.error = consoleError;
+      }
+    });
   });
 });
