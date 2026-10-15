@@ -2,6 +2,10 @@
 
 A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can upload text (or a `.txt` file) with no account; only an allow-listed set of maintainer emails can ever read an upload back, via a magic-link login. Uploads expire automatically after a configurable retention window.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FMarvellous-Codeworks%2Flogdrop&project-name=logdrop&repository-name=logdrop&env=TOKEN_SECRET%2CADMIN_EMAILS%2CRESEND_API_KEY%2CMAIL_FROM%2CSITE_URL%2CVITE_TURNSTILE_SITE_KEY%2CTURNSTILE_SECRET_KEY%2CCRON_SECRET%2CRETENTION_DAYS%2CMAX_UPLOAD_BYTES&envDefaults=%7B%22RETENTION_DAYS%22%3A%227%22%2C%22MAX_UPLOAD_BYTES%22%3A%224194304%22%7D&envDescription=Admin%20allow-list%2C%20Resend%20mail%2C%20Cloudflare%20Turnstile%20keys%20and%20two%20secrets%20you%20generate%20yourself.%20See%20the%20README%20for%20each%20value.&envLink=https%3A%2F%2Fgithub.com%2FMarvellous-Codeworks%2Flogdrop%236-set-every-environment-variable&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22public%22%7D%5D)
+
+The button forks the repo, creates the Vercel project and its Blob store, and asks for the environment variables. A few things still need a manual step: see [Deploy with the button](#deploy-with-the-button).
+
 ## Stack
 
 - TanStack Start + TanStack Router, React 19, Vite, Bun
@@ -54,6 +58,26 @@ bun test
 ```
 
 ## Deploying
+
+### Deploy with the button
+
+The [Deploy with Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FMarvellous-Codeworks%2Flogdrop&project-name=logdrop&repository-name=logdrop&env=TOKEN_SECRET%2CADMIN_EMAILS%2CRESEND_API_KEY%2CMAIL_FROM%2CSITE_URL%2CVITE_TURNSTILE_SITE_KEY%2CTURNSTILE_SECRET_KEY%2CCRON_SECRET%2CRETENTION_DAYS%2CMAX_UPLOAD_BYTES&envDefaults=%7B%22RETENTION_DAYS%22%3A%227%22%2C%22MAX_UPLOAD_BYTES%22%3A%224194304%22%7D&envDescription=Admin%20allow-list%2C%20Resend%20mail%2C%20Cloudflare%20Turnstile%20keys%20and%20two%20secrets%20you%20generate%20yourself.%20See%20the%20README%20for%20each%20value.&envLink=https%3A%2F%2Fgithub.com%2FMarvellous-Codeworks%2Flogdrop%236-set-every-environment-variable&stores=%5B%7B%22type%22%3A%22blob%22%2C%22access%22%3A%22public%22%7D%5D) button runs the import for you: it forks this repo to your Git account, creates the Vercel project, creates and connects a **public** Blob store (`BLOB_READ_WRITE_TOKEN`), and asks for every environment variable in one form (`RETENTION_DAYS` and `MAX_UPLOAD_BYTES` come pre-filled).
+
+Have these ready before you click, because the form asks for them:
+
+- a Cloudflare Turnstile widget's keys ([step 4](#4-create-a-cloudflare-turnstile-widget));
+- a Resend API key and sender address;
+- `TOKEN_SECRET` and `CRON_SECRET` ([step 5](#5-generate-the-two-app-secrets));
+- `SITE_URL`: the address you'll serve logdrop at. If you don't have a domain yet, use the `*.vercel.app` address Vercel shows for the project and change it later.
+
+What the button can't do, so it's still manual:
+
+- the optional Edge Config store for the upload kill-switch ([step 3](#3-create-and-connect-a-vercel-edge-config-store));
+- adding your domain to the Turnstile widget and to the Vercel project ([step 7](#7-point-your-domain-at-the-deployment)).
+
+After changing an environment variable or connecting a store, redeploy: the change only applies to new deployments.
+
+The steps below are the full manual path, and the reference for every value the form asks for.
 
 ### 1. Create the Vercel project
 
@@ -108,6 +132,8 @@ In the Vercel project → **Settings** → **Environment Variables**, set everyt
 | `VITE_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | step 4 |
 | `CRON_SECRET` | generated in step 5 |
 | `AGENT_API_TOKEN` | optional, **deprecated**: not needed, since each admin generates a personal token from the dashboard (see [AI agent access](#ai-agent-access)). Keep it only while existing agents still use it; if you do, enable it for every Vercel environment where those agents run, then redeploy |
+
+Magic links are built from `SITE_URL`. To sign in on a Preview deployment, set `SITE_URL` in the **Preview** environment to that preview's address (for example the branch alias, `https://<project>-git-<branch>-<team>.vercel.app`); otherwise links requested there point at production.
 
 `BLOB_READ_WRITE_TOKEN` and `EDGE_CONFIG` should already be present from steps 2–3 — double check they're listed before moving on.
 
