@@ -3,7 +3,7 @@ import { getSessionEmail } from "./session";
 import { getPasteMeta, updatePasteMeta } from "./storage";
 
 export async function handleAdminAnalyzed(request: Request, secret: string): Promise<Response> {
-  const email = getSessionEmail(request, secret, getAdminEmails());
+  const email = await getSessionEmail(request, secret, getAdminEmails());
   if (!email) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

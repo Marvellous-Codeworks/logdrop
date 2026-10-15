@@ -1,22 +1,17 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// `typ` distinguishes the two token kinds. Both are signed with the same
-// secret, so without it a session token could be replayed at /admin/verify
-// to mint a fresh session (indefinite renewal), and vice versa.
-export interface MagicLinkPayload {
-  typ: "magic";
-  email: string;
-  exp: number;
-}
-
+// The session cookie is signed so a request can be tied to an admin without
+// a lookup; the server-side record keyed by `sid` (see auth-store.ts) is what
+// makes it single-browser, revocable and bounded to 8 hours. Cookies issued
+// before `sid` existed fail verification and need a fresh sign-in.
 export interface SessionPayload {
   typ: "session";
   email: string;
+  sid: string;
   exp: number;
 }
 
-const MAGIC_LINK_TTL_SECONDS = 15 * 60;
-const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
+const SESSION_TTL_SECONDS = 8 * 60 * 60;
 
 function toBase64Url(input: string | Buffer): string {
   return Buffer.from(input).toString("base64url");
@@ -71,20 +66,13 @@ function verifyWithExpiry<T extends { exp: number }>(token: string, secret: stri
   return payload;
 }
 
-export function signMagicLinkToken(email: string, secret: string): string {
-  return signWithExpiry<MagicLinkPayload>({ typ: "magic", email }, MAGIC_LINK_TTL_SECONDS, secret);
-}
-
-export function verifyMagicLinkToken(token: string, secret: string): MagicLinkPayload | null {
-  const payload = verifyWithExpiry<MagicLinkPayload>(token, secret);
-  return payload?.typ === "magic" ? payload : null;
-}
-
-export function signSessionToken(email: string, secret: string): string {
-  return signWithExpiry<SessionPayload>({ typ: "session", email }, SESSION_TTL_SECONDS, secret);
+export function signSessionToken(email: string, sid: string, secret: string): string {
+  return signWithExpiry<SessionPayload>({ typ: "session", email, sid }, SESSION_TTL_SECONDS, secret);
 }
 
 export function verifySessionToken(token: string, secret: string): SessionPayload | null {
   const payload = verifyWithExpiry<SessionPayload>(token, secret);
-  return payload?.typ === "session" ? payload : null;
+  return payload?.typ === "session" && typeof payload.email === "string" && typeof payload.sid === "string"
+    ? payload
+    : null;
 }

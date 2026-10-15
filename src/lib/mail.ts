@@ -35,7 +35,7 @@ export function magicLinkEmailHtml(magicLinkUrl: string): string {
       </td></tr>
       <tr><td style="padding:32px;font-family:${FONT};color:${INK};">
         <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;">Admin sign-in</h1>
-        <p style="margin:0 0 24px;font-size:15px;line-height:1.5;">Click the button below to log in to logdrop. This link expires in 15 minutes.</p>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.5;">Click the button below to log in to logdrop. This link works once and expires in 15 minutes.</p>
         <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
           <td style="border-radius:8px;background:${ACCENT};"><a href="${link}" style="display:inline-block;padding:12px 24px;font-family:${FONT};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">Log in to logdrop</a></td>
         </tr></table>
@@ -53,7 +53,7 @@ export function magicLinkEmailText(magicLinkUrl: string): string {
   return [
     "logdrop - Admin sign-in",
     "",
-    "Open the link below to log in to logdrop. This link expires in 15 minutes.",
+    "Open the link below to log in to logdrop. This link works once and expires in 15 minutes.",
     "",
     magicLinkUrl,
     "",
