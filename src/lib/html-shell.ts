@@ -39,11 +39,13 @@ export function pageHead(title: string): string {
   <link rel="stylesheet" href="${FONTS_HREF}">`;
 }
 
+// Only server-rendered admin pages use this nav, so it always offers sign-out.
 export function navHtml(showAdminLink: boolean): string {
   return `<nav class="nav">
     <a class="wordmark" href="/"><img class="wordmark__icon" src="/favicon.svg" alt="" />logdrop</a>
     <div class="nav__end">
       ${showAdminLink ? '<a class="nav__link" href="/admin">Admin</a>' : ""}
+      <form class="nav__form" method="post" action="/api/admin/logout"><button type="submit" class="nav__link nav__button">Sign out</button></form>
       ${THEME_TOGGLE_BUTTON_HTML}
     </div>
   </nav>`;

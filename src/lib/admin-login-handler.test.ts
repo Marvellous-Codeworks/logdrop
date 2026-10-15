@@ -1,4 +1,5 @@
 import { describe, test, expect, mock, afterEach, afterAll } from "bun:test";
+import { installFakeAuthStore } from "./auth-store.fake";
 
 // mock.module() patches the shared module namespace object in place for the
 // rest of this bun test process, so it must be restored in afterAll even
@@ -9,8 +10,11 @@ const { sendMagicLinkEmail: realSendMagicLinkEmail } = realMail;
 const sendMagicLinkEmailMock = mock(async (_args: { to: string; magicLinkUrl: string }) => undefined);
 mock.module("./mail", () => ({ sendMagicLinkEmail: sendMagicLinkEmailMock }));
 
+const authStore = await installFakeAuthStore();
+
 afterAll(() => {
   mock.module("./mail", () => ({ sendMagicLinkEmail: realSendMagicLinkEmail }));
+  authStore.restore();
 });
 
 const { handleAdminLoginRequest } = await import("./admin-login-handler");
@@ -20,6 +24,7 @@ describe("handleAdminLoginRequest", () => {
   afterEach(() => {
     process.env = { ...originalEnv };
     sendMagicLinkEmailMock.mockClear();
+    authStore.reset();
   });
 
   function setEnv() {
@@ -81,6 +86,32 @@ describe("handleAdminLoginRequest", () => {
     } finally {
       console.error = originalError;
     }
+  });
+
+  test("still returns ok, without sending, when storing the link fails", async () => {
+    setEnv();
+    const originalError = console.error;
+    console.error = () => {};
+    authStore.fake.createMagicLink.mockImplementationOnce(async () => {
+      throw new Error("Blob down");
+    });
+    try {
+      expect(await handleAdminLoginRequest("admin@example.com")).toEqual({ ok: true });
+      expect(sendMagicLinkEmailMock).not.toHaveBeenCalled();
+    } finally {
+      console.error = originalError;
+    }
+  });
+
+  test("the emailed link carries an opaque token, not the email", async () => {
+    setEnv();
+    await handleAdminLoginRequest("admin@example.com");
+
+    const { magicLinkUrl } = sendMagicLinkEmailMock.mock.calls[0][0];
+    expect(magicLinkUrl).not.toContain("admin@");
+    expect(magicLinkUrl).not.toContain("admin%40");
+    const issued = await authStore.fake.createMagicLink.mock.results.at(-1)!.value;
+    expect(new URL(magicLinkUrl).searchParams.get("token")).toBe(issued as string);
   });
 
   test("does not send email for a non-allow-listed address but still returns ok", async () => {

@@ -5,7 +5,7 @@ import { getSessionEmail } from "./session";
 // Lets the signed-in admin manage their own agent token. The plaintext token
 // is only ever returned by "generate"; nothing else can read it back.
 export async function handleAdminAgentToken(request: Request, secret: string): Promise<Response> {
-  const email = getSessionEmail(request, secret, getAdminEmails());
+  const email = await getSessionEmail(request, secret, getAdminEmails());
   if (!email) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

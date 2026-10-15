@@ -176,6 +176,18 @@ code, .mono {
   white-space: nowrap;
 }
 
+.nav__form { display: contents; }
+.nav__button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  transition: color var(--dur-short) var(--ease-out);
+}
+.nav__button:hover { color: var(--color-accent); }
+
 .nav__end {
   display: flex;
   align-items: center;

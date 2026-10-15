@@ -4,7 +4,7 @@ import { deletePaste } from "./storage";
 
 export async function handleAdminDeleteBulk(request: Request, secret: string): Promise<Response> {
   const url = new URL(request.url);
-  const email = getSessionEmail(request, secret, getAdminEmails());
+  const email = await getSessionEmail(request, secret, getAdminEmails());
   if (!email) {
     return Response.redirect(new URL("/admin/login?next=/admin", url.origin).toString(), 302);
   }

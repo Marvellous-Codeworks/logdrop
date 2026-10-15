@@ -1,4 +1,4 @@
-import { signMagicLinkToken } from "./auth-token";
+import { createMagicLink } from "./auth-store";
 import { sendMagicLinkEmail } from "./mail";
 import { getAdminEmails, isAdminEmail } from "./admin-allowlist";
 import { sanitizeNext } from "./safe-next";
@@ -10,19 +10,19 @@ export async function handleAdminLoginRequest(email: string, next?: string): Pro
 
   const normalizedEmail = email.trim().toLowerCase();
   if (isAdminEmail(normalizedEmail, getAdminEmails())) {
-    const token = signMagicLinkToken(normalizedEmail, secret);
-    // Re-validated here (not only in the server function) so this handler
-    // can never embed an unsafe redirect target in a magic link.
-    const safeNext = sanitizeNext(next);
-    const nextQuery = safeNext ? `&next=${encodeURIComponent(safeNext)}` : "";
-    const magicLinkUrl = `${siteUrl}/admin/verify?token=${encodeURIComponent(token)}${nextQuery}`;
     try {
+      const token = await createMagicLink(normalizedEmail);
+      // Re-validated here (not only in the server function) so this handler
+      // can never embed an unsafe redirect target in a magic link.
+      const safeNext = sanitizeNext(next);
+      const nextQuery = safeNext ? `&next=${encodeURIComponent(safeNext)}` : "";
+      const magicLinkUrl = `${siteUrl}/admin/verify?token=${encodeURIComponent(token)}${nextQuery}`;
       await sendMagicLinkEmail({ to: normalizedEmail, magicLinkUrl });
     } catch (err) {
-      // Delivery failures must not surface to the caller: an error for an
-      // allow-listed address (vs. a silent ok for anyone else) would reveal
-      // allow-list membership.
-      console.error("Failed to send magic-link email", err);
+      // Storage or delivery failures must not surface to the caller: an
+      // error for an allow-listed address (vs. a silent ok for anyone else)
+      // would reveal allow-list membership.
+      console.error("Failed to issue magic link", err);
     }
   }
   // Always the same response regardless of allow-list membership, so this

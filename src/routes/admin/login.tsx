@@ -45,12 +45,12 @@ function LoginPage() {
         <div className="card card--centered">
           <h1 style={{ fontSize: "var(--text-2xl)" }}>Admin sign-in</h1>
           {error === "expired" && (
-            <p className="error-text">That link expired. Request a new one below.</p>
+            <p className="error-text">That link expired or was already used. Request a new one below.</p>
           )}
           {error === "missing" && <p className="error-text">Missing login token.</p>}
           {sent ? (
             <p className="lede">
-              If that email is registered, a login link is on its way. It expires in 15 minutes.
+              If that email is registered, a login link is on its way. It works once and expires in 15 minutes.
             </p>
           ) : (
             <form onSubmit={handleSubmit}>

@@ -19,7 +19,22 @@ A generic, self-hostable, PrivateBin-style plain-text drop-off: anyone can uploa
 - Branded magic-link login email (logo, `logdrop` wordmark and "Admin sign-in" title, as on the site), with a plain-text part for clients without HTML. The logo is `public/logo-email.png`, loaded from `SITE_URL`.
 - Optional AI agent access: `GET /api/agent/paste/<slug>` lets your own AI agent tooling read a paste's content from a plain share link without an admin login, using a **personal agent token** (see [AI agent access](#ai-agent-access)). Every agent read is recorded, so the dashboard table shows a robot badge on uploads an agent has read, and the upload's own page shows how many times, when last and whose token was used.
 
+## Admin sign-in
+
+Admins sign in with a magic link sent to an address in `ADMIN_EMAILS`.
+
+- **Single-use link.** The link works once, within 15 minutes of being requested. A second use, a use after 15 minutes, or a link superseded by a newer request is rejected with the same "expired or already used" message.
+- **Confirm to sign in.** Opening the link shows a **Sign in** button; the link is only used when you press it. Mail security scanners that pre-open links (Safe Links and similar) therefore can't burn it before you click.
+- **Browser-bound session.** The session cookie has no expiry date, so it ends when the browser session ends. Independently, the server ends every session 8 hours after sign-in, whatever the browser does with the cookie.
+- **One session per admin.** Signing in on another browser or device ends your previous session there.
+- **Sign out** (top right on every admin page) ends the session server-side, so a copied cookie stops working too.
+- Neither the link token nor the session ID is stored in plain text: the Blob store keeps only SHA-256 hashes (`auth/` prefix), never your email address. The daily cleanup cron removes expired records.
+
+**Upgrading from 1.3.x:** sessions issued by earlier versions are no longer accepted. After deploying, every admin signs in once more.
+
 ## AI agent access
+
+Agent tokens are separate from the sign-in above: they don't expire with your session and keep working until you regenerate or revoke them.
 
 Each admin manages their own token from the dashboard: under "Signed in as", open **AI agent access → Manage your token** to generate, regenerate or revoke it. No env var or redeploy is needed.
 
