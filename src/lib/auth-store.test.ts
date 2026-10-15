@@ -1,8 +1,11 @@
 import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { createHash } from "node:crypto";
 
 // In-memory Vercel Blob with the semantics auth-store.ts relies on: fixed
 // pathnames, no-overwrite by default, ETag compare-and-swap via `ifMatch`,
-// and `head()` reporting content type and upload time. Real exports are
+// and `head()` reporting content type and upload time. As on the real
+// service, the ETag is the MD5 of the content: rewriting identical content
+// leaves it unchanged. Real exports are
 // captured BEFORE mock.module() so afterAll() can hand them back verbatim.
 const realBlob = { ...(await import("@vercel/blob")) };
 const { BlobNotFoundError, BlobPreconditionFailedError } = realBlob;
@@ -18,8 +21,8 @@ interface FakeBlob {
 
 const store = new Map<string, FakeBlob>();
 let clock = Date.parse("2026-01-01T00:00:00.000Z");
-let etagCounter = 0;
 let failDeletes = false;
+let failConditionalPuts = false;
 
 function pathnameOf(urlOrPathname: string): string {
   return urlOrPathname.replace(BLOB_HOST, "");
@@ -35,12 +38,15 @@ mock.module("@vercel/blob", () => ({
     ) => {
       // Yield first so concurrent callers interleave like real network calls.
       await Promise.resolve();
+      if (failConditionalPuts && options.ifMatch !== undefined) {
+        throw new Error("The conditional request cannot succeed due to a conflicting operation against this resource.");
+      }
       const existing = store.get(pathname);
       if (options.ifMatch !== undefined && existing?.etag !== options.ifMatch) {
         throw new BlobPreconditionFailedError();
       }
       if (existing && !options.allowOverwrite) throw new Error("This blob already exists");
-      store.set(pathname, { body, contentType: options.contentType, etag: `"e${++etagCounter}"`, uploadedAt: new Date(clock) });
+      store.set(pathname, { body, contentType: options.contentType, etag: `"${createHash("md5").update(body).digest("hex")}"`, uploadedAt: new Date(clock) });
       return { pathname, url: `${BLOB_HOST}${pathname}` };
     },
   ),
@@ -87,6 +93,7 @@ function at(offsetMs: number): Date {
 beforeEach(() => {
   store.clear();
   failDeletes = false;
+  failConditionalPuts = false;
 });
 
 describe("magic links", () => {
@@ -138,6 +145,18 @@ describe("magic links", () => {
     const results = await Promise.all(Array.from({ length: 10 }, () => consumeMagicLink(token, ADMINS, at(0))));
 
     expect(results.filter((r) => r !== null)).toEqual(["alice@example.com"]);
+  });
+
+  test("a conflicting-operation error on the consume write rejects instead of throwing", async () => {
+    const token = await createMagicLink("alice@example.com");
+    failConditionalPuts = true;
+    const originalError = console.error;
+    console.error = () => {};
+    try {
+      expect(await consumeMagicLink(token, ADMINS, at(0))).toBeNull();
+    } finally {
+      console.error = originalError;
+    }
   });
 
   test("a consumed link stays unusable even if deleting it failed", async () => {

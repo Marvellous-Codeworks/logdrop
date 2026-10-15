@@ -126,10 +126,12 @@ export async function consumeMagicLink(
   if (!email) return null;
 
   // Compare-and-swap on the ETag read above: of concurrent consumers only
-  // one write can match it. A precondition failure means someone else won
-  // (or an SDK retry of our own successful write): reject, never sign in.
+  // one write can match it. Vercel Blob's ETag is the MD5 of the content, so
+  // the body must be unique or the write wouldn't change the ETag and every
+  // racer would pass. Any failure (precondition, "conflicting operation",
+  // an SDK retry of our own successful write) rejects: never sign in on doubt.
   try {
-    await put(found.pathname, "{}", {
+    await put(found.pathname, JSON.stringify({ consumed: newSecret() }), {
       access: "public",
       addRandomSuffix: false,
       allowOverwrite: true,
@@ -138,8 +140,8 @@ export async function consumeMagicLink(
       contentType: CONSUMED_TYPE,
     });
   } catch (err) {
-    if (err instanceof BlobPreconditionFailedError) return null;
-    throw err;
+    if (!(err instanceof BlobPreconditionFailedError)) console.error("Magic-link consume failed", err);
+    return null;
   }
   // Best-effort: the consumed flag already blocks reuse; cron cleans up leftovers.
   await del(found.url).catch(() => undefined);
