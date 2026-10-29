@@ -21,6 +21,7 @@ The button forks the repo, creates the Vercel project and its Blob store, and as
 - Delete an upload, single or in bulk, from the dashboard, or straight from the upload's own page — always through a custom on-screen confirmation modal (no native browser `confirm()`).
 - A one-click back-to-admin button on every upload's page, and green flash + checkmark feedback on every copy/mark action.
 - Branded magic-link login email (logo, `logdrop` wordmark and "Admin sign-in" title, as on the site), with a plain-text part for clients without HTML. The logo is `public/logo-email.png`, loaded from `SITE_URL`.
+- Social preview card (`og:image`, `public/og-image.png`, 1280×640) on the frontpage. Its absolute URL is built from `SITE_URL` at build time, so redeploy after changing `SITE_URL`. Upload pages (`/r/<slug>`) carry no preview tags, so a shared link never leaks its content into a chat preview.
 - Optional AI agent access: `GET /api/agent/paste/<slug>` lets your own AI agent tooling read a paste's content from a plain share link without an admin login, using a **personal agent token** (see [AI agent access](#ai-agent-access)). Every agent read is recorded, so the dashboard table shows a robot badge on uploads an agent has read, and the upload's own page shows how many times, when last and whose token was used.
 
 ## Admin sign-in
