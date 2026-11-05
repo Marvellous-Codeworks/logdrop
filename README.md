@@ -44,7 +44,7 @@ Optionally, a maintainer's AI agent can read uploads through the Agent API, with
 | `src/components/` | Shared UI |
 | `public/` | Static files: favicon, email logo, social preview image |
 | `vercel.json` | Daily cleanup schedule |
-| `design.md` | Design notes |
+| `design.md` | The design system, read before changing a page |
 
 ## Stack
 
